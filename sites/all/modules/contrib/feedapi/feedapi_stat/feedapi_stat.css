@@ -1,0 +1,12 @@
+/* $Id: feedapi_stat.css,v 1.1.2.1 2009/08/18 14:38:52 aronnovak Exp $ */
+
+.feedapi-stat.number,
+.feedapi-stat.interval,
+.feedapi-stat.date,
+.feedapi-stat.na {
+  display: block;
+  text-align: right;
+}
+.feedapi-stat-wrapper .sparkline {
+  float: right;
+}

@@ -1,0 +1,48 @@
+<?php
+// $Id: feedapi_cron.test,v 1.1.2.3 2009/10/02 14:15:20 aronnovak Exp $
+
+require_once(dirname(__FILE__) .'/feedapi_test_case.tinc');
+
+/**
+ * Class for testing FeedAPI cron scheduling.
+ */
+class FeedAPICronTestsCase extends FeedAPITestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI Cron scheduling'),
+      'description' => t('Creates two feeds and see if cron respects the Minimum refresh period setting.'),
+      'group' => t('FeedAPI'),
+    );
+  }
+
+  /**
+   * Checks cron feed scheduling functionality
+   */
+  function testFeedAPICron() {
+    $this->create_type(array_pop($this->get_parsers()));
+    $this->feedapi_user();
+    $feed_urls = array();
+    $feed_urls[0] = $this->testFileURL('test_feed.rss');
+    $edit = array(
+      'feedapi[feedapi_url]' => $feed_urls[0],
+      'feedapi[refresh_time]' => FEEDAPI_CRON_ALWAYS_REFRESH,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+    $feed_urls[1] = $this->testFileURL('test_feed2.rss');
+    $edit = array(
+      'feedapi[feedapi_url]' => $feed_urls[1],
+      'feedapi[refresh_time]' => FEEDAPI_CRON_NEVER_REFRESH,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+    $this->drupalGet('cron.php');
+    $refreshed = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item} fi JOIN {feedapi_node_item_feed} fif ON fi.nid = fif.feed_item_nid JOIN {feedapi} f ON fif.feed_nid = f.nid WHERE f.url = '%s'", $feed_urls[0]));
+    $not_refreshed = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item} fi JOIN {feedapi_node_item_feed} fif ON fi.nid = fif.feed_item_nid JOIN {feedapi} f ON fif.feed_nid = f.nid WHERE f.url = '%s'", $feed_urls[1]));
+    $this->assertTrue($refreshed > 0, 'The feed with immediate refresh setting was refreshed.');
+    $this->assertTrue($not_refreshed == 0, 'The feed with never refresh setting wasn\'t refreshed.');
+  }
+  
+}

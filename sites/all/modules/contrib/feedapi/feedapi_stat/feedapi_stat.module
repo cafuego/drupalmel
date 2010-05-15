@@ -1,0 +1,185 @@
+<?php
+// $Id: feedapi_stat.module,v 1.1.2.1 2009/08/18 14:38:52 aronnovak Exp $
+
+/**
+ * @file
+ * Visualize standard FeedAPI statistics logs.
+ */
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function feedapi_stat_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
+  if ($op == 'view' && user_access('administer feedapi') && feedapi_enabled_type($node->type)) {
+    $node->content['feedapi_stat']['#value'] = theme('feedapi_stat', feedapi_stat_get($node));
+  }
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function feedapi_stat_theme() {
+  return array(
+    'feedapi_stat' => array(
+      'arguments' => array('node' => NULL),
+    ),
+    'feedapi_stat_sparkline' => array(
+      'arguments' => array('data' => NULL, 'width' => NULL, 'height' => NULL),
+    ),
+    'feedapi_stat_format' => array(
+      'arguments' => array('value' => NULL, 'type' => NULL),
+    ),
+  );
+}
+
+/**
+ * Theme stats.
+ * Accepts result of feedapi_stat_get().
+ */
+function theme_feedapi_stat($values) {
+  drupal_add_css(drupal_get_path('module', 'feedapi_stat') .'/feedapi_stat.css');
+
+  // Get all timestamps.
+  $timestamps = array();
+  foreach ($values as $type => $val) {
+    foreach ($val as $timestamp => $v) {
+      $timestamps[$timestamp] = $timestamp;
+    }
+  }
+  arsort($timestamps);
+
+  // Build rows.
+  $names = feedapi_stat_types();
+  $rows = array();
+  foreach ($values as $type => $val) {
+    $row = array(
+      $names[$type],
+      theme('feedapi_stat_sparkline', $val),
+    );
+    foreach ($timestamps as $timestamp) {
+      $row[$timestamp] = theme('feedapi_stat_format', $val[$timestamp], $type);
+    }
+    $rows[] = $row;
+  }
+
+  // Build rows, first headers and sparklines, then all values.
+  $names = feedapi_stat_types();
+  $rows = array();
+  $row = array('&nbsp;');
+  $header = array('Time of refresh');
+  foreach ($values as $type => $val) {
+    $header[$type] = $names[$type];
+    // Only add sparklines for dynamic data.
+    if (!in_array($type, array('update_times', 'next_refresh_time'))) {
+      $row[$type] = theme('feedapi_stat_sparkline', $val);
+    }
+    else {
+      $row[$type] = '&nbsp;';
+    }
+  }
+  $rows[] = $row;
+
+  foreach ($timestamps as $timestamp) {
+    $row = array(
+      format_date($timestamp, 'custom', 'Y-m-d H:m:s'),
+    );
+    foreach ($values as $type => $val) {
+      $row[$type] = theme('feedapi_stat_format', $val[$timestamp], $type);
+    }
+    $rows[] = $row;
+  }
+
+  return '<div class="feedapi-stat-wrapper">'.
+    '<h3 class="feedapi-stat">'.
+    t('FeedAPI Refresh Log') .
+    '</h3>'.
+    theme('table', $header, $rows) .
+    '</div>';
+}
+
+/**
+ * Helper for creating a sparkline graph.
+ */
+function theme_feedapi_stat_sparkline($data, $width = 70, $height = 15) {
+  if (empty($data)) {
+    return '';
+  }
+
+  $elements = sparkline_elements();
+  $element = $elements['sparkline_bar'];
+  $element['#width'] = $width;
+  $element['#height'] = $height;
+  $element['#bar_width'] = 1;
+  $element['#bar_gap'] = 0;
+  $element['#negative_color'] = 'grey';
+  $element['#positive_color'] = 'grey';
+  $element['#data'] = $data;
+  $element['#max'] = max($data) + max($data) * .2;
+  $element['#style'] = 'bar';
+
+  return theme('sparkline', $element);
+}
+
+/**
+ * Format a statistical value.
+ */
+function theme_feedapi_stat_format($value, $type = '') {
+  if (empty($value) && $value !== 0) {
+    return '<span class="feedapi-stat na"> - </span>';
+  }
+  switch ($type) {
+    case 'next_refresh_time':
+    case 'update_times':
+      return '<span class="feedapi-stat date">'. format_date($value, 'custom', 'Y-m-d H:m:s') .'</span>';
+    case 'process_time':
+      return '<span class="feedapi-stat interval">'. ($value/1000) .'</span>';
+    case 'download_num':
+    case 'new':
+      return '<span class="feedapi-stat number">'. $value .'</span>';
+    case 'memory_increase':
+      return '<span class="feedapi-stat number">'. number_format($value/(1024*1024), 3) .'</span>';
+    default:
+      return '<span class="feedapi-stat">'. $value .'</span>';
+  }
+}
+
+/**
+ * Get types of available stats.
+ * @todo: should live in FeedAPI module.
+ */
+function feedapi_stat_types() {
+  return array(
+    'update_times' => t('Time after refresh'),
+    'download_num' => t('Downloaded feed items'),
+    'new' => t('New feed items'),
+    'process_time' => t('Process time (sec)'),
+    'memory_increase' => t('Memory increase (MB)'),
+    'next_refresh_time' => t('Next scheduled refresh'),
+  );
+}
+
+/**
+ * Get stats for a given feed node.
+ */
+function feedapi_stat_get($node) {
+  $values = array();
+  foreach (feedapi_stat_types() as $type => $name) {
+    $values[$type] = _feedapi_stat_get($node->nid, $type);
+  }
+  return $values;
+}
+
+/**
+ * Get one type of statistics for a given node.
+ * @todo: should live in FeedAPI module.
+ */
+function _feedapi_stat_get($id, $type) {
+  $result = db_query('SELECT timestamp, value FROM {feedapi_stat} WHERE id = %d AND type = "%s" ORDER BY timestamp ASC', $id, $type);
+  $values = array();
+  while ($row = db_fetch_object($result)) {
+    $values[$row->timestamp] = $row->value;
+  }
+  return $values;
+}
+
+

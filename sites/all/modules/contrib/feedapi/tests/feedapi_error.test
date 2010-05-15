@@ -1,0 +1,77 @@
+<?php
+// $Id: feedapi_error.test,v 1.1.2.3 2009/09/18 16:21:03 alexb Exp $
+
+require_once(dirname(__FILE__) .'/feedapi_test_case.tinc');
+
+/**
+ * Class for testing FeedAPI error-proofness.
+ * Various tests for invalid input and misconfiguration handling.
+ */
+class FeedAPIErrorTestsCase extends FeedAPITestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI error tolerance'),
+      'description' => t('Various tests for invalid input and misconfiguration handling.'),
+      'group' => t('FeedAPI'),
+    );
+  }
+
+  function testFeedAPI_Invalid_URL() {
+    $this->create_type(array_pop($this->get_parsers()));
+    $settings = feedapi_get_settings($this->info->type);
+    $this->feedapi_user();
+    $feedapi_url = "http://". $this->randomName(20, '') .".". $this->randomName(2, '');
+    $edit = array(
+      'feedapi[feedapi_url]' => $feedapi_url,
+      'title' => $this->randomName(10),
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+    $node = db_result(db_query("SELECT nid FROM {feedapi} WHERE url = '%s'", $edit['feedapi[feedapi_url]']));
+    $this->assertTrue(($node != FALSE), 'The inaccessible feed URL was inserted in the database.');
+  }
+
+  /**
+   * Feed add form. 
+   */
+  function testFeedAdd() {
+    $this->create_type(array_pop($this->get_parsers()));
+    $this->feedapi_user(TRUE);
+    $feed_urls = array();
+    $feed_urls[0] = $this->randomName();
+    $edit = array(
+      'feedapi[feedapi_url]' => $feed_urls[0],
+      'feedapi[refresh_time]' => FEEDAPI_CRON_ALWAYS_REFRESH,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+    $this->assertText(t('Title could not be retrieved from feed.'), 'Invalid URL results in correct warning.');
+    $feed_urls[1] = 'http://validbutnonexisting'. $this->randomName(25) .'.com/foo';
+    $edit = array(
+      'feedapi[feedapi_url]' => $feed_urls[1],
+      'feedapi[refresh_time]' => FEEDAPI_CRON_ALWAYS_REFRESH,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+    $this->assertText(t('Title could not be retrieved from feed.'), 'Non-existing URL results in correct warning.');
+    $this->drupalGet('admin/build/menu-customize/navigation');
+    $this->drupalGet('admin/content/node-type/'. $this->info->type);
+    $this->assertText('Is a feed content type');
+    // Turn off all the parsers for that feed
+    $edit = array(
+      'feedapi[parsers][parser_simplepie][enabled]' => FALSE,
+      'feedapi[parsers][parser_common_syndication][enabled]' => FALSE,
+    );
+    $this->drupalPost('admin/content/node-type/'. $this->info->type, $edit, 'Save content type');
+    $this->assertRaw(t('Using FeedAPI for this content-type requires at least one enabled parser.'), 'The lack of parsers was detected.');
+    $edit = array(
+      'feedapi[processors][feedapi_node][enabled]' => FALSE,
+    );
+    $this->drupalPost('admin/content/node-type/'. $this->info->type, $edit, 'Save content type');
+    $this->assertRaw(t('Using FeedAPI for this content-type requires at least one enabled processor.'), 'The lack of processors was detected.');
+
+    $num = db_result(db_query("SELECT COUNT(*) FROM {feedapi}"));
+    $this->assertEqual($num, 0, 'No feed was created during the test.');
+  }
+}

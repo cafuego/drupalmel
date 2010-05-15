@@ -1,0 +1,35 @@
+<?php
+// $Id: feedapi_type.test,v 1.1.2.1 2009/08/20 19:08:26 aronnovak Exp $
+
+require_once(dirname(__FILE__) .'/feedapi_test_case.tinc');
+
+/**
+ * Class for testing FeedAPI content-type related functionality.
+ */
+class FeedAPTypeTestsCase extends FeedAPITestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI content-type form'),
+      'description' => t('Tests FeedAPI content-type form handling.'),
+      'group' => t('FeedAPI'),
+    );
+  }
+
+  /**
+   * Checks basic content-type form.
+   */
+  function testContentType_Setting_Page() {
+    $this->create_type(array_pop($this->get_parsers()));
+    $this->feedapi_user(TRUE);
+    $parsers_ok = $this->get_parsers();
+    $this->create_type(array_shift($parsers_ok));
+    $this->drupalGet('admin/content/node-type/'. $this->info->type);
+    $this->assertText(t('FeedAPI'), 'The FeedAPI group appears at content-type edit page.');
+    $this->assertText(t('Created date of item nodes'), 'FeedAPI Node settings at content-type edit page.');
+  }
+  
+}

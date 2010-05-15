@@ -1,0 +1,90 @@
+<?php
+// $Id: feedapi_expire.test,v 1.1.2.1 2009/10/31 15:47:09 aronnovak Exp $
+
+require_once(dirname(__FILE__) .'/feedapi_test_case.tinc');
+
+/**
+ * Class for testing FeedAPI cron scheduling.
+ */
+class FeedAPIExpireTestsCase extends FeedAPITestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI Expiring'),
+      'description' => t('Creates one feed, refresh it. Manipulates directly the timestamp of the items and see if FeedAPI deletes the outdated items or not.'),
+      'group' => t('FeedAPI'),
+    );
+  }
+
+  /**
+   * Checks cron feed scheduling functionality
+   */
+  function testFeedAPIAllExpire() {
+    $this->create_type(array_pop($this->get_parsers()));
+    $this->feedapi_user();
+
+    $num = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item}"));
+    $this->assertTrue($num == 0, 'At the beginning there are no items');
+
+    $feed_url = $this->testFileURL('test_feed.rss');
+    $edit = array(
+      'feedapi[feedapi_url]' => $feed_url,
+      'feedapi[refresh_time]' => FEEDAPI_NEVER_DELETE_OLD,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+
+    $node = db_fetch_object(db_query("SELECT nid FROM {feedapi} WHERE url = '%s'", $feed_url));
+    $this->drupalGet("node/{$node->nid}/refresh");
+    $num = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item}"));
+    $this->assertTrue($num > 0, 'The feed has at least one item');
+    db_query("UPDATE {feedapi_node_item} SET timestamp = %d", time() - 51840000);
+
+    $edit = array(
+      'feedapi[feedapi_url]' => 'http://novaak.net/empty.rss',
+      'feedapi[items_delete]' => 31536000,
+    );
+    $this->drupalPost("node/{$node->nid}/edit", $edit, 'Save');
+    // Make sure that the feed will be refreshed
+    $this->drupalGet("node/{$node->nid}/refresh");
+    $num = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item}"));
+    $this->assertTrue($num == 0, 'The feed hasn\'t got any items');
+  }
+
+  /**
+   * Checks cron feed scheduling functionality
+   */
+  function testFeedAPISomeExpire() {
+    $this->create_type(array_pop($this->get_parsers()));
+    $this->feedapi_user();
+
+    $num = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item}"));
+    $this->assertTrue($num == 0, 'At the beginning there are no items');
+
+    $feed_url = $this->testFileURL('test_feed.rss');
+    $edit = array(
+      'feedapi[feedapi_url]' => $feed_url,
+      'feedapi[refresh_time]' => FEEDAPI_NEVER_DELETE_OLD,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+
+    $node = db_fetch_object(db_query("SELECT nid FROM {feedapi} WHERE url = '%s'", $feed_url));
+    $this->drupalGet("node/{$node->nid}/refresh");
+    $num = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item}"));
+    $this->assertTrue($num > 0, 'The feed has at least one item');
+    db_query("UPDATE {feedapi_node_item} SET timestamp = %d WHERE nid IN (SELECT nid FROM {node} WHERE title LIKE '%magyar%')", time() - 51840000);
+
+    $edit = array(
+      'feedapi[feedapi_url]' => 'http://novaak.net/empty.rss',
+      'feedapi[items_delete]' => 31536000,
+    );
+    $this->drupalPost("node/{$node->nid}/edit", $edit, 'Save');
+    // Make sure that the feed will be refreshed
+    $this->drupalGet("node/{$node->nid}/refresh");
+    $num_new = db_result(db_query("SELECT COUNT(*) FROM {feedapi_node_item}"));
+    $this->assertTrue($num - $num_new == 1, 'One item has expired');
+  }
+
+}

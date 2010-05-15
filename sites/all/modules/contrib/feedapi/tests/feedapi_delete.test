@@ -1,0 +1,40 @@
+<?php
+// $Id: feedapi_delete.test,v 1.1.2.2 2009/10/02 14:15:20 aronnovak Exp $
+
+require_once(dirname(__FILE__) .'/feedapi_test_case.tinc');
+
+/**
+ * Class for testing FeedAPI feed deleting.
+ */
+class FeedAPIDeleteTestsCase extends FeedAPITestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI delete feed'),
+      'description' => t('Deletes feed via the user interface.'),
+      'group' => t('FeedAPI'),
+    );
+  }
+
+  function testFeedAPI_Feed_Delete_By_UI() {
+    $parsers = $this->get_parsers();
+    foreach ($parsers as $parser) {
+      $this->create_type($parser);
+      $this->feedapi_user();
+      $feed_url = $this->testFileURL('test_feed.rss');
+      $edit = array(
+        'feedapi[feedapi_url]' => $feed_url,
+      );
+      $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+      $node = db_fetch_object(db_query("SELECT nid FROM {feedapi} WHERE url = '%s'", $feed_url));
+      $this->drupalPost("node/{$node->nid}/edit", $edit, t('Delete'));
+      $this->assertText(t('This action cannot be undone.'), 'The feed node can be deleted via the user interface.');
+      $this->drupalPost("node/{$node->nid}/delete", array(), t('Delete'));
+      $nid = db_result(db_query("SELECT nid FROM {feedapi} WHERE url = '%s'", $feed_url));
+      $this->assertTrue(empty($nid), 'The feed node is deleted via the user interface.');
+    }
+  }
+}

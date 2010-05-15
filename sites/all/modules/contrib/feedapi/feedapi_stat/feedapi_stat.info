@@ -1,0 +1,15 @@
+;$Id: feedapi_stat.info,v 1.1.2.1 2009/08/18 14:38:52 aronnovak Exp $
+name = FeedAPI Statistics
+description = "Visualizes FeedAPI performance statistics."
+package = FeedAPI Add On 
+dependencies[] = feedapi
+dependencies[] = sparkline
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2009-11-09
+version = "6.x-1.9-beta3"
+core = "6.x"
+project = "feedapi"
+datestamp = "1257806483"
+

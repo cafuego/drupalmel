@@ -1,0 +1,33 @@
+$Id: INSTALL.txt,v 1.1.2.1 2009/09/24 23:07:37 alexb Exp $
+
+FeedAPI INSTALLATION INSTRUCTIONS
+---------------------------------
+
+Quick Start Guide
+-----------------
+
+Enable FeedAPI, FeedAPI Node and Common Syndication Parser modules. The module
+automatically creates a content-type called feed.
+
+To add your first feed, visit node/add/feed and fill the Feed URL field and 
+click "Save".
+
+To retrieve feed items manually, click on the Refresh menu tab of the feed node.
+
+To retrieve feed items regularly from your feeds, configure cron: 
+http://drupal.org/cron
+
+Submodules in the package
+-----------------------------
+
+1) FeedAPI - Base module.
+2) FeedAPI Node Processor - Use to create nodes from feed items.
+4) FeedAPI Inherit - Passes OG or Taxonomy configuration from feed nodes
+   to feed item nodes.
+5) Common Syndication Parser - Fast SimpleXML based parser.
+6) SimplePie Parser - Very robust, PHP4-compatible parser.
+   Requires you to download SimplePie from http://www.simplepie.org and move 
+   simplepie.inc file to feedapi/parser_simplepie directory.
+
+To properly configure a feed content type, you must at least enable 1 parser 
+(for example Common Syndication) and 1 processor (for example FeedAPI Node).

@@ -1,0 +1,100 @@
+<?php
+// $Id: parser_common_syndication.module,v 1.6.2.23.2.45 2009/09/18 09:47:37 aronnovak Exp $
+
+/**
+ * @file
+ * Parse the incoming URL with SimpleXML then provide a data structure of the feed.
+ * Requires PHP5 because of SimpleXML.
+ */
+
+/**
+ * Implementation of hook_help().
+ */
+function parser_common_syndication_help($path, $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('Provide a common syndication parser for FeedAPI-compatible modules. Only PHP5-compatible. Rather fast.');
+    case 'feedapi/full_name':
+      return t('Parser Common Syndication - only for PHP5');
+  }
+}
+
+/**
+ * Implementation of hook_feedapi_feed().
+ */
+function parser_common_syndication_feedapi_feed($op) {
+  $args = func_get_args();
+  switch ($op) {
+    case 'type':
+      return array("XML feed");
+    case 'compatible':
+      if (!function_exists('simplexml_load_string')) {
+        return FALSE;
+      }
+      require_once './'. drupal_get_path('module', 'parser_common_syndication') .'/parser_common_syndication.inc';
+
+      $url = $args[1]->url;
+      $settings = isset($args[2]) ? $args[2] : array();
+      $downloaded_string = _parser_common_syndication_download($url, $settings);
+      if (is_object($downloaded_string)) {
+        return array_shift(parser_common_syndication_feedapi_feed('type'));
+      }
+      if (!defined('LIBXML_VERSION') || (version_compare(phpversion(), '5.1.0', '<'))) {
+        @ $xml = simplexml_load_string($downloaded_string, NULL);
+      }
+      else {
+        @ $xml = simplexml_load_string($downloaded_string, 'SimpleXMLElement', LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NOCDATA);
+      }
+      if (_parser_common_syndication_feed_format_detect($xml) != FALSE) {
+        // The parser is compatible. Then has to parse the feed and cache it. Because in the download
+        // part, the feed etag data be already saved perhaps (depends on the webserver).
+        $parsed_feed = _parser_common_syndication_feedapi_parse($xml);
+        if (is_object($parsed_feed) && empty($parsed_feed->from_cache)) {
+          _parser_common_syndication_cache_set($url, $parsed_feed);
+        }
+        // We don't have to choose between the types, because this module is only able to parse one.
+        return array_shift(parser_common_syndication_feedapi_feed('type'));
+      }
+      return FALSE;
+    case 'parse':
+      require_once './'. drupal_get_path('module', 'parser_common_syndication') .'/parser_common_syndication.inc';
+
+      $feed = is_object($args[1]) ? $args[1] : FALSE;
+      $parsed_feed = _parser_common_syndication_feedapi_parse($feed);
+      if (is_object($parsed_feed) && empty($parsed_feed->from_cache)) {
+        _parser_common_syndication_cache_set($feed->url, $parsed_feed);
+      }
+      return $parsed_feed;
+  }
+}
+
+/**
+ * Implementation of hook_feedapi_settings_form().
+ */
+function parser_common_syndication_feedapi_settings_form($type) {
+  if (_parser_common_syndication_use_curl()) {
+    $form = array();
+    switch ($type) {
+      case 'parsers':
+        $form['accept_invalid_cert'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Do not verify SSL peer'),
+          '#description' => t('When the parser connects to an SSL protected resource it tries to validate the resource\'s SSL certificate. If this can\'t be done the feed download fails. Check this box to skip validation and accept any SSL certificate. Note that skipping validation can pose a security risk. See !curlopt.', array('!curlopt' => l('CURLOPT_SSL_VERIFYPEER', 'http://php.net/manual/en/function.curl-setopt.php'))),
+          '#default_value' => FALSE,
+        );
+        break;
+    }
+    return $form;
+  }
+}
+
+/**
+ * Decides if it's possible to use cURL or not
+ *
+ * @return
+ *   TRUE or FALSE
+ */
+function _parser_common_syndication_use_curl() {
+  $basedir = ini_get("open_basedir");
+  return function_exists('curl_init') && !ini_get('safe_mode') && empty($basedir);
+}

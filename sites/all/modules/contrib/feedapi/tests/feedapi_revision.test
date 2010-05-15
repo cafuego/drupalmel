@@ -1,0 +1,79 @@
+<?php
+// $Id: feedapi_revision.test,v 1.1.2.2 2009/10/02 14:15:20 aronnovak Exp $
+
+require_once(dirname(__FILE__) .'/feedapi_test_case.tinc');
+
+/**
+ * Class for testing FeedAPI revision support.
+ */
+class FeedAPIRevisionTestsCase extends FeedAPITestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI revision support'),
+      'description' => t('Creates a feed and then creates a new revision with different configuration and revert the original node / feed.'),
+      'group' => t('FeedAPI'),
+    );
+  }
+
+
+  /**
+   * Checks if the revision support works correctly
+   */
+  function testFeedAPI_Node_Revisions() {
+    $parsers_ok = $this->get_parsers();
+    // Create a new content-type for creating the feed node
+    $this->create_type(array_pop($parsers_ok));
+    // Login with a user who has FeedAPI rights
+    $this->feedapi_user();
+
+    $settings = feedapi_get_settings($this->info->type);
+
+    // Create the initial revision, first submission
+    $feed_url = $this->testFileURL('test_feed.rss');
+    $edit = array(
+      'feedapi[processors][feedapi_node][node_date]' => 'current',
+      'feedapi[feedapi_url]' => $feed_url,
+    );
+    $this->drupalPost('node/add/'. $this->info->type, $edit, 'Save');
+    $this->assertText(t('Link to site'), 'The node is created.');
+    $nid = db_result(db_query("SELECT nid FROM {feedapi} WHERE url = '%s'", $feed_url));
+    $vids = array();
+    // Get the current vid
+    $vids[] = db_result(db_query("SELECT vid FROM {node} WHERE nid = %d", $nid));
+
+    // Edit the node, change a setting, create a new revision
+    $edit = array(
+      'feedapi[processors][feedapi_node][node_date]' => 'feed',
+      'revision' => TRUE,
+      'log' => 'changelog blabla',
+    );
+    $this->drupalPost('node/'. $nid .'/edit', $edit, 'Save');
+    $vids[] = db_result(db_query("SELECT vid FROM {node} WHERE nid = %d", $nid));
+
+    $this->assertTrue($vids[0] != $vids[1], 'Node has two separate revisions now.');
+    $num = db_result(db_query('SELECT COUNT(*) FROM {feedapi} WHERE nid = %d', $nid));
+    $this->assertTrue($num == 2, 'Feed table contains the two revision entries.');
+
+    $settings = array();
+    $settings[] = feedapi_get_settings(NULL, $vids[0], TRUE);
+    $settings[] = feedapi_get_settings(NULL, $vids[1], TRUE);
+    $this->assertTrue($settings[0]['processors']['feedapi_node']['node_date'] == 'current', 'The initial revision has correct setting');
+    $this->assertTrue($settings[1]['processors']['feedapi_node']['node_date'] == 'feed', 'The first revision has correct setting');
+
+    // Do a revert to the initial revision
+    $this->drupalPost('node/'. $nid .'/revisions/'. $vids[0] .'/revert', array(), 'Revert');
+    $vids[] = db_result(db_query("SELECT vid FROM {node} WHERE nid = %d", $nid));
+    $settings[] = feedapi_get_settings(NULL, $vids[2]);
+    $this->assertTrue($settings[2]['processors']['feedapi_node']['node_date'] == 'current', 'The reverted revision has correct setting.');
+
+    $this->drupalPost("node/$nid/edit", $edit, t('Delete'));
+    $this->drupalPost("node/$nid/delete", array(), t('Delete'));
+    $num = db_result(db_query('SELECT COUNT(*) FROM {feedapi} WHERE nid = %d', $nid));
+    $this->assertTrue($num == 0, 'All revision entries were deleted from FeedAPI table');
+  }
+
+}
