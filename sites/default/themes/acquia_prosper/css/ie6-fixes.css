@@ -1,0 +1,132 @@
+/* $Id: ie6-fixes.css,v 1.1.2.4 2010/01/11 00:09:05 sociotech Exp $ */
+
+/* IE6 fixes
+-------------------------------------------------------------- */
+/* Lists */
+ul li {
+  list-style-image: url(../images/list-level-1_ie.png);
+}
+
+ul li ul li {
+  list-style-image: url(../images/list-level-2_ie.png);
+}
+
+ul li ul li ul li {
+  list-style-image: url(../images/list-level-3_ie.png);
+}
+
+/* Clearfixes */
+ul.links.inline.uc-categories,
+ul.pager,
+.prosper-quicktabs .quicktabs_main,
+.teaser {
+  display: block;
+  height: 1%;
+}
+
+/* Primary menu */
+#primary-menu ul.sf-menu li ul.menu {
+  margin-top: 7px;
+}
+
+#primary-menu ul.sf-menu li ul.menu li ul.menu {
+  margin-top: 12px;
+}
+
+/* Skinr styles */
+.prosper-grayborder-darkbackground ul li {
+  position: relative;
+}
+
+/* Prevent collapsing pager container */
+ul.pager {
+  height: 1%;
+  position: relative;
+  z-index: 10;
+}
+
+ul.pager li {
+  line-height: 200%;
+  margin-top: -3px;
+}
+
+ul.pager li.pager-first a,
+ul.pager li.pager-previous a,
+ul.pager li.pager-next a,
+ul.pager li.pager-last a {
+  border: none;
+  margin: 0;
+}
+
+ul.pager li.pager-first a:hover,
+ul.pager li.pager-previous a:hover,
+ul.pager li.pager-next a:hover,
+ul.pager li.pager-last a:hover{
+  border: none;
+}
+
+ul.pager li.pager-current {
+  height: 21px;
+  position: relative;
+  z-index: 10;
+}
+
+ul.pager li.pager-item a:link,
+ul.pager li.pager-item a:visited {
+  display: block;
+  margin-top: -1px;
+  padding: 0 8px;
+}
+
+/* Give height to header-top when only search is enabled */
+#header-top.header-top-search {
+  height: 32px;
+}
+
+/* move the search box up into header-top area */
+.search-box-inner form#search-theme-form {
+  top: -25px;
+}
+
+/* prevent search button from covering text input area */
+.search-box-inner #search-button {
+  width: 1%;
+}
+
+/* Menu list */
+.prosper-menu-list ul li {
+  height: 30px;
+}
+
+.prosper-menu-list ul li ul {
+  margin-bottom: -20px;
+}
+
+/* Ubercart */
+/* fix product page layout */
+.product-group .content {
+  float: left;
+  clear: right;
+}
+
+/* prevent elements from disappearing */
+.product-group .content #product-details,
+.block-uc_cart h2.block-title span {
+  zoom: 1;
+}
+
+/* prevent overlapping AJAX fieldsets */
+#uc-cart-checkout-form fieldset.collapsible {
+  position: static;
+}
+
+/* improve appearance of fieldset legends */
+#uc-cart-checkout-form fieldset legend {
+  margin-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#uc-cart-checkout-form fieldset legend a {
+  float: left;
+}

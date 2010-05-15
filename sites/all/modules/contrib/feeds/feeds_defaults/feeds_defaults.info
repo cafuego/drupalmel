@@ -1,0 +1,14 @@
+; $Id: feeds_defaults.info,v 1.3 2010/03/29 02:55:50 alexb Exp $
+core = "6.x"
+name = "Feeds Defaults"
+package = "Feeds"
+description = "Get started: useful default configurations for Feeds: RSS/Atom aggregation, OPML import, node import and user import."
+project = "Feeds"
+dependencies[] = "feeds"
+
+; Information added by drupal.org packaging script on 2010-04-12
+version = "6.x-1.0-alpha14"
+core = "6.x"
+project = "feeds"
+datestamp = "1271035809"
+

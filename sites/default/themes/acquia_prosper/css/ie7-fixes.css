@@ -1,0 +1,90 @@
+/* $Id: ie7-fixes.css,v 1.1.2.3 2010/01/11 00:09:05 sociotech Exp $ */
+
+/* IE7 fixes
+-------------------------------------------------------------- */
+/* Lists */
+ul li {
+  list-style-image: url(../images/list-level-1_ie.png);
+}
+
+ul li ul li {
+  list-style-image: url(../images/list-level-2_ie.png);
+}
+
+ul li ul li ul li {
+  list-style-image: url(../images/list-level-3_ie.png);
+}
+
+/* prevent collapsing pager container */
+ul.pager {
+  height: 1%;
+}
+
+ul.pager li {
+  line-height: 200%;
+  margin-top: -3px;
+}
+
+ul.pager li.pager-first a,
+ul.pager li.pager-previous a,
+ul.pager li.pager-next a,
+ul.pager li.pager-last a {
+  margin: 0;
+}
+
+ul.pager li.pager-current {
+  height: 21px;
+}
+
+ul.pager li.pager-item a:link,
+ul.pager li.pager-item a:visited {
+  display: block;
+  height: 20px;
+  margin-top: 0;
+  padding: 0;
+  width: 20px;
+}
+
+/* Clearfixes */
+ul.links.inline.uc-categories,
+ul.pager,
+.prosper-quicktabs .quicktabs_main,
+.teaser {
+  zoom: 1;
+}
+
+/* A. Avoid collapsing margin bug: move margin-bottom from block to block-inner */
+.block {
+  margin-bottom: 0;
+}
+
+.block > .inner {
+  margin-bottom: 1.5em;
+}
+
+/* B. Now remove new margin from selected elements per style.css */
+.primary-menu .inner,
+.secondary-menu .inner,
+.search-box .inner,
+.header-group .block > .inner {
+  margin-bottom: 0;
+}
+
+/* Ubercart */
+/* prevent elements from disappearing */
+.product-group .content #product-details,
+.block-uc_cart h2.block-title span {
+  zoom: 1;
+}
+
+/* prevent overlapping AJAX fieldsets */
+#uc-cart-checkout-form fieldset.collapsible {
+  position: static;
+}
+
+/* improve appearance of fieldset legends */
+#uc-cart-checkout-form fieldset legend {
+  margin-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}

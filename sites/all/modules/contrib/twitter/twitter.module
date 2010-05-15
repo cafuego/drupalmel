@@ -1,0 +1,315 @@
+<?php
+// $Id: twitter.module,v 1.3.2.14 2009/07/02 14:54:18 eaton Exp $
+
+/**
+ * Implementation of hook_meu()
+ */
+function twitter_menu() {
+  $items = array();
+
+  $items['admin/settings/twitter'] = array(
+    'title' => 'Twitter setup',
+    'description' => 'Twitter module settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('twitter_admin_form'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'twitter.pages.inc'
+  );
+
+  $items['user/%user_category/edit/twitter'] = array(
+    'title' => 'Twitter accounts',
+    'page callback' => 'twitter_user_settings',
+    'page arguments' => array(1),
+    'access arguments' => array('add twitter accounts'),
+    'load arguments' => array('%map', '%index'),
+    'weight' => 10,
+    'file' => 'twitter.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm()
+ */
+function twitter_perm() {
+  return array('add twitter accounts', 'use global twitter account');
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function twitter_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'categories':
+      return array(
+        array(
+          'name' => 'twitter',
+          'title' => 'Twitter accounts',
+          'weight' => 3,
+        ),
+      );
+  }
+}
+
+function twitter_theme() {
+  return array(
+    'twitter_account_list_form' => array(
+      'arguments' => array('form' => NULL),
+    )
+  );
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function twitter_form_alter(&$form, $form_state, $form_id) {
+  // Alter any node forms.
+  if (isset($form['#node']) && $form['#node']->type .'_node_form' == $form_id) {
+    // If we haven't enabled Twitter posting on this node type, nothing to do
+    // here.
+    $type = $form['#node']->type;
+    $allowed_types = variable_get('twitter_types', array('story' => 'story', 'blog' => 'blog'));
+    if (empty($allowed_types[$type])) {
+      return;
+    }
+
+    module_load_include('inc', 'twitter');
+
+    $twitter_form = twitter_form();
+    if (!$twitter_form) {
+      return;
+    }
+    $form['twitter'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Post to twitter.com'),
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+      '#tree' => TRUE,
+    );
+    $form['twitter']['post'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Announce this post on Twitter'),
+      '#default_value' => (empty($form['nid']['#value'])),
+      '#id' => 'twitter-toggle',
+    );
+    $form['twitter'] += $twitter_form;
+    $form['twitter']['status']['#default_value'] = variable_get('twitter_default_format', 'New post: !title !tinyurl');
+    $form['twitter']['status']['#description'] = t('The given text will be posted to twitter.com. You can use !url, !url-alias, !tinyurl, !title and !user as replacement text.');
+  }
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ *
+ * Intercepts newly published nodes and posts noticed to Twitter.
+ */
+function twitter_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  module_load_include('inc', 'twitter');
+
+  switch ($op) {
+    case 'insert':
+    case 'update':
+      if (!empty($node->status) && !empty($node->twitter) && !empty($node->twitter['post'])) {
+        $twitter_accounts = twitter_get_user_accounts($node->uid, TRUE);
+        $pass = $twitter_accounts[$node->twitter['account']]['password'];
+
+        $replacements = array('!title' => $node->title,
+                              '!url' => url('node/'. $node->nid, array('absolute' => TRUE, 'alias' => TRUE)),
+                              '!url-alias' => url('node/'. $node->nid, array('absolute' => TRUE)),
+                              '!user' => $node->name);
+        // Only generate the shortened URL if it's going to be used. No sense
+        // burning through TinyURLs without a good reason.
+        if (strstr($node->twitter['status'], '!tinyurl') !== FALSE) {
+          $replacements['!tinyurl'] = twitter_shorten_url(url('node/'. $node->nid, array('absolute' => TRUE)));
+        }
+
+        $status = strtr($node->twitter['status'], $replacements);
+        $result = twitter_set_status($node->twitter['account'], $pass, $status);
+        if (_twitter_request_failure($result)) {
+          drupal_set_message(t('An error occurred when posting to twitter: %code %error',
+                               array('%code' => $result->code, '%error' => $result->error)), 'warning');
+        }
+        else {
+          drupal_set_message(t('Successfully posted to Twitter'));
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Very lightweight helper function to generate a TinyURL for a given post.
+ */
+function twitter_shorten_url($url) {
+  if (module_exists('shorten')) {
+    return shorten_url($url);
+  }
+  else {
+    $response = drupal_http_request("http://tinyurl.com/api-create.php?url=" . $url);
+    if ($response->code == 200) {
+      return $response->data;
+    }
+    else {
+      return $url;
+    }
+  }
+}
+
+/**
+ * Implementation of hook_cron()
+ *
+ * Imports new Twitter statuses for site users, and deletes expired tweets.
+ */
+function twitter_cron() {
+  if (!variable_get('twitter_import', TRUE)) {
+    return;
+  }
+
+  module_load_include('inc', 'twitter');
+
+  // Pull up a list of Twitter accounts that are flagged for updating,
+  // sorted by how long it's been since we last updated them. This ensures
+  // that the most out-of-date accounts get updated first.
+
+  $sql  = "SELECT tu.screen_name, tu.password, ta.protected FROM {twitter_user} tu ";
+  $sql .= "LEFT JOIN {twitter_account} ta ON tu.screen_name = ta.screen_name ";
+  $sql .= "WHERE tu.import = 1 ORDER BY ta.last_refresh ASC";
+
+  $results = db_query_range($sql, 0, 20);
+  while ($account = db_fetch_array($results)) {
+    // Use the 'cheaper' unauthenticated version if the account isn't protected,
+    // or if a password hasn't been specified.
+    if (empty($account['protected']) || empty($account['password'])) {
+      $statuses = twitter_fetch_timeline($account['screen_name']);
+    }
+    else {
+      $statuses = twitter_fetch_statuses($account['screen_name'], $account['password']);
+    }
+
+    // If we got results back, update the account information with the latest
+    // follower count, location, user picture, etc. Also, touch the account's
+    // last_refreshed timestamp so it won't get thrashed before other, staler
+    // accounts.
+    if (!empty($statuses)) {
+      twitter_cache_account($statuses[0]['account']);
+    }
+    twitter_touch_account($account['screen_name']);
+  }
+
+  // Nuke old statuses.
+  if ($age = variable_get('twitter_expire', 0)) {
+    db_query('DELETE FROM {twitter} WHERE created_time < %d', time() - $age);
+  }
+}
+
+
+/**
+ * Implementation of hook_filter().
+ * - Twitter @username converter:
+ *     .Converts Twitter-style @usernames into links to Twitter account pages.
+ * - Twitter #hashtag converter:
+ *     .Converts Twitter-style #hashtags into links to hashtags.org.
+ */
+function twitter_filter($op, $delta = 0, $format = -1, $text = '') {
+  switch ($op) {
+    case 'list':
+      return array(0 => t('Twitter @username converter'), 1 => t('Twitter #hashtag converter'));
+
+    case 'description':
+      switch ($delta) {
+        case 0:
+          return t('Converts Twitter-style @usernames into links to Twitter account pages.');
+        case 1:
+          return t('Converts Twitter-style #hashtags into links to hashtags.org.');
+        default:
+          return;
+      }
+
+    case 'process':
+      switch ($delta) {
+        case 0:
+          return twitter_link_filter($text);
+        case 1:
+          return twitter_link_filter($text, '#', 'http://search.twitter.com/search?q=%23');
+        default:
+          return $text;
+      }
+
+    default:
+      return $text;
+  }
+}
+
+/**
+ * Implementation of hook_filter_tips().
+ */
+function twitter_filter_tips($delta, $format, $long = FALSE) {
+  global $base_url;
+  switch ($delta) {
+    case 0:
+      return t('Twitter-style @usersnames are linked to their Twitter account pages.');
+
+    case 1:
+      return t('Twitter-style #hashtags are linked to !url.', array('!url' => '<a href="http://search.twitter.com/">search.twitter.com</a>'));
+  }
+}
+
+/**
+ * This helper function converts Twitter-style @usernames and #hashtags into 
+ * actual links.
+ */
+function twitter_link_filter($text, $prefix = '@', $destination = 'http://twitter.com/') {
+  $matches = array(
+    '/\>' . $prefix . '([a-z0-9_]{0,15})/i',
+    '/^' . $prefix . '([a-z0-9_]{0,15})/i',
+    '/(\s+)' . $prefix . '([a-z0-9_]{0,15})/i',
+  );
+  $replacements = array(
+    '><a href="' . $destination . '${1}">' . $prefix . '${1}</a>',
+    '<a href="' . $destination . '${1}">' . $prefix . '${1}</a>',
+    '${1}<a href="' . $destination . '${2}">' . $prefix . '${2}</a>',
+  );
+  return preg_replace($matches, $replacements, $text); 
+}
+
+/**
+ * An implementation of hook_twitter_accounts. We want to move this into a
+ * separate module eventually, but sticking the code here and using a hook
+ * lets other modules solve the 'what accounts can a user post with' problem
+ * in cleaner ways.
+ */
+function twitter_twitter_accounts($drupal_user, $full_access = FALSE) {
+  $accounts = array();
+  if (user_access('use global twitter account') &&
+      ($name = variable_get('twitter_global_name', NULL)) &&
+      ($pass = variable_get('twitter_global_password', NULL))) {
+    
+    $accounts[$name] = array(
+      'screen_name' => $name,
+      'password' => $pass,
+    );
+  }
+  
+  $sql = "SELECT ta.*, tu.uid, tu.password, tu.import FROM {twitter_user} tu LEFT JOIN {twitter_account} ta ON (tu.screen_name = ta.screen_name) WHERE tu.uid = %d";
+  if ($full_access) {
+    $sql .= " AND tu.password IS NOT NULL";
+  }
+  $args = array($drupal_user->uid);
+  $results = db_query($sql, $args);
+
+  while ($account = db_fetch_array($results)) {
+    $accounts[$account['screen_name']] = $account;
+  }
+  return $accounts;
+}
+
+
+/**
+ * Implementation of hook_views_api.
+ * Notifies the Views module that we're compatible with a particular API revision.
+ */
+function twitter_views_api() {
+  return array('api' => 2);
+}

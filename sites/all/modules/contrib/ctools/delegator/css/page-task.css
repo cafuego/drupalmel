@@ -1,0 +1,22 @@
+/* $Id: page-task.css,v 1.2 2008/12/30 18:21:34 merlinofchaos Exp $ */
+
+.delegator-page-operations .ctools-dropdown-link-wrapper,
+th.delegator-page-operations {
+  text-align: right; 
+}
+
+td.delegator-page-operations {
+  width: 175px;
+}
+
+.delegator-disabled {
+  color: #ccc;
+}
+
+.delegator-page-title {
+  width: 20%;
+}
+
+.delegator-page-path {
+  width: 20%;
+}

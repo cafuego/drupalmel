@@ -1,0 +1,62 @@
+<?php
+// $Id: allperms.module,v 1.2 2010/05/03 00:38:06 cafuego Exp $
+
+function allperms_insert_anchors($element) {
+  $element['#prefix'] = '<a href="#' . $element['#value'] . '"></a>';
+  return($element);
+}
+
+/**
+ * Implementation of hook_form_form-id_alter()
+ *
+ * Insert a `check all' checkbox on top of each role column.
+ * Add a javascript snippet for each role, so the checkbox
+ * we add can do its thing.
+ */
+function allperms_form_user_admin_perm_alter(&$form, &$form_state) {
+
+/*
+  foreach ($form['permission'] as $key => $val) {
+    if (is_integer($key)) {
+      $form['permission'][$key]['#pre_render'] = array('allperms_insert_anchors');
+    }
+  }
+  dpm($form);
+*/
+
+  foreach ($form['role_names'] as $num => $role) {
+
+    // Add a control checkbox for this role.
+    $control  = '<label class="option" for="select-all-' . $num . '">';
+    $control .= t('Select All');
+    $control .= '<br /><input type="checkbox" name="' . $num . '[select all]" id="select-all-' . $num . '" value="select all" class="form-checkbox" />';
+    $control .= '</label><br />';
+
+    // Stick the checkbox on top of the role name.
+    $form['role_names'][$num]['#value'] = $control . $form['role_names'][$num]['#value'];
+
+    // Generate the javascript to iterate over the checkboxes that apply
+    // only to this role and turn them all on or off.
+    $js = "$(document).ready(function(){
+  var match = 'edit-' + " . $num ." + '-';
+  $('#select-all-" . $num . "').click(function(){
+    if( $(this).attr('checked')) {
+      $('input:checkbox').each(function() {
+        if ( $(this).attr('id').substring(0,match.length).match('edit-" . $num . "-') ) {
+          $(this).attr('checked', true);
+        } else {
+        }
+      });
+    } else {
+      $('input:checkbox').each(function() {
+        if ( $(this).attr('id').substring(0,match.length).match('edit-" . $num . "-') ) {
+          $(this).attr('checked', false);
+        }
+      });
+    }
+  });
+});";
+
+    drupal_add_js($js, 'inline');
+  }
+}

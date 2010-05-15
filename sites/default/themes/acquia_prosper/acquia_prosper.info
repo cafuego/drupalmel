@@ -1,0 +1,110 @@
+; $Id: acquia_prosper.info,v 1.1.2.5 2010/01/11 00:09:05 sociotech Exp $
+
+name = Acquia Prosper
+description = <a href="http://www.acquia.com">Acquia's</a> Prosper is grid-enabled and designed for <a href="http://www.ubercart.org">Ubercart</a> e-commerce. It uses the <a href="http://drupal.org/project/fusion">Fusion Core</a> base theme and <a href="http://drupal.org/project/skinr">Skinr</a> module for easy point-and-click theming. By <a href="http://www.topnotchthemes.com">TopNotchThemes</a>
+base theme = fusion_core
+core = 6.x
+engine = phptemplate
+
+stylesheets[all][] = css/acquia-prosper-style.css
+
+; Acquia Prosper includes two design packs for different color schemes: all color-related styles are separated into this stylesheet to make it easy to create your own custom color scheme. Gray is the default.
+stylesheets[all][] = design_packs/gray/gray.css
+
+; Comment out the above CSS file and uncomment this one to switch to the blue color scheme
+;stylesheets[all][] = design_packs/blue/blue.css
+
+scripts[] = js/jquery.corner.js
+scripts[] = js/acquia-prosper-script.js
+
+regions[sidebar_first] = sidebar first
+regions[sidebar_last] = sidebar last
+regions[header_top] = header top
+regions[header] = header
+regions[preface_top] = preface top
+regions[preface_bottom] = preface bottom
+regions[content_top] = content top
+regions[content] = content
+regions[content_bottom] = content bottom
+regions[postscript_top] = postscript top
+regions[postscript_bottom] = postscript bottom
+regions[footer] = footer
+regions[node_top] = node top
+regions[node_bottom] = node bottom
+
+features[] = logo
+features[] = name
+features[] = slogan
+features[] = node_user_picture
+features[] = comment_user_picture
+features[] = search
+features[] = favicon
+features[] = primary_links
+features[] = secondary_links
+
+; Default theme settings
+settings[theme_grid] = grid16-960
+settings[theme_grid_options][] = grid16-960
+settings[theme_grid_options][] = grid16-fluid
+settings[fluid_grid_width] = fluid-95
+settings[theme_font_size] = font-size-12
+settings[sidebar_layout] = sidebars-split
+settings[sidebar_first_width] = 3
+settings[sidebar_last_width] = 3
+
+; Inherit Skinr styles from parent themes
+skinr[options][inherit_skins] = true
+
+; Disable 12 column grid block widths inherited from fusion_core
+skinr[grid12-width] =
+
+; Prosper styles
+skinr[prosper-general-styles][title] = Acquia Prosper - general theme styles
+skinr[prosper-general-styles][type] = radios
+skinr[prosper-general-styles][description] = Acquia Prosper's styles for blocks, panels, views, and content types
+skinr[prosper-general-styles][options][1][label] = Gray rounded title background, plain white block
+skinr[prosper-general-styles][options][1][class] = prosper-gray-rounded-plain prosper-rounded-title
+skinr[prosper-general-styles][options][2][label] = Gray rounded title background, list styling
+skinr[prosper-general-styles][options][2][class] = prosper-gray-rounded-style prosper-rounded-title
+skinr[prosper-general-styles][options][3][label] = Rounded corner dark background
+skinr[prosper-general-styles][options][3][class] = prosper-grayborder-darkbackground
+skinr[prosper-general-styles][options][4][label] = Light gray background and border
+skinr[prosper-general-styles][options][4][class] = prosper-lightgraybackground-border
+skinr[prosper-general-styles][options][5][label] = Medium gray background with bottom border
+skinr[prosper-general-styles][options][5][class] = prosper-mediumgraybackground-bottomborder
+skinr[prosper-general-styles][options][6][label] = Gradient background with padding and thick border
+skinr[prosper-general-styles][options][6][class] = prosper-gradient-border
+skinr[prosper-general-styles][options][7][label] = Menu list
+skinr[prosper-general-styles][options][7][class] = prosper-menu-list
+
+; Prosper styles - blocks
+skinr[prosper-general-styles][options][8][label] = Shopping cart - Light background
+skinr[prosper-general-styles][options][8][class] = prosper-shoppingcart-light
+skinr[prosper-general-styles][options][9][label] = Shopping cart - Dark background
+skinr[prosper-general-styles][options][9][class] = prosper-shoppingcart-dark
+skinr[prosper-general-styles][options][10][label] = Tabbed block - also set Quicktabs style to Default
+skinr[prosper-general-styles][options][10][class] = prosper-quicktabs
+
+; Prosper styles - comments only
+skinr[prosper-comments][title] = Acquia Prosper: comment styles
+skinr[prosper-comments][type] = radios
+skinr[prosper-comments][features][] = comment_wrapper
+skinr[prosper-comments][options][1][label] = Simple with white background and separators
+skinr[prosper-comments][options][1][class] = prosper-comments-clean
+skinr[prosper-comments][options][2][label] = Speech bubbles with pointed edge
+skinr[prosper-comments][options][2][class] = prosper-comments-edgy
+
+
+; Prosper common styles
+skinr[prosper-common-styles][title] = Acquia Prosper - common theme styles
+skinr[prosper-common-styles][type] = checkboxes
+skinr[prosper-common-styles][description] = Acquia Prosper's styles for blocks, panels, views, and content types
+skinr[prosper-common-styles][options][1][label] = Gray border around image
+skinr[prosper-common-styles][options][1][class] = prosper-gray-border-image
+
+; Information added by drupal.org packaging script on 2010-01-11
+version = "6.x-1.0-beta4"
+core = "6.x"
+project = "acquia_prosper"
+datestamp = "1263168904"
+
