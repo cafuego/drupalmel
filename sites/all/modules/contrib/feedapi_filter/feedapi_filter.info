@@ -1,0 +1,12 @@
+; $Id: feedapi_filter.info,v 1.5 2009/10/07 21:06:38 chris Exp $
+name = FeedAPI Filter
+description = "Sets field filters in nodes created by Feed API."
+package = FeedAPI Add On
+core = 6.x
+
+; Information added by drupal.org packaging script on 2009-10-07
+version = "6.x-1.0-beta1"
+core = "6.x"
+project = "feedapi_filter"
+datestamp = "1254951034"
+

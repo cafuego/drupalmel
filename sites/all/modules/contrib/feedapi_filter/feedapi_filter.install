@@ -1,0 +1,65 @@
+<?php
+// $Id: feedapi_filter.install,v 1.5 2009/10/07 21:06:38 chris Exp $
+
+/**
+ * @file
+ * Install file for FeedAPI module.
+ */
+
+/**
+ * Implementation of hook_schema(). // todo - check Not NULLs, keys, etc.
+ */
+function feedapi_filter_schema() {
+  $schema['feedapi_filter'] = array(
+    'description' => 'Stores feed-related filters for each feed',
+    'fields' => array(
+      'nid' => array(
+        'description' => 'The node identifier where the filter belongs.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'fid' => array(
+        'description' => 'The primary identifier for the filter.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'field_name' => array(
+        'description' => 'The node field to be filtered.',
+        'type' => 'varchar',
+        'length' => 32),
+      'type' => array(
+        'description' => 'The kind of filter.',
+        'type' => 'varchar',
+        'length' => 32),
+      'filter' => array(
+        'description' => 'The actual filter value or expression.',
+        'type' => 'text',),
+    ),
+    'primary key' => array('nid', 'fid'),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function feedapi_filter_install() {
+  drupal_install_schema('feedapi_filter');
+  db_query("UPDATE {system} SET weight = 9 WHERE name = 'feedapi_filter'");
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function feedapi_filter_uninstall() {
+  drupal_uninstall_schema('feedapi_filter');
+
+  // Delete variables site-wide
+
+  // Delete variables per-content-type
+  $types = array_keys(node_get_types());
+  foreach ($types as $type) {
+    variable_del('feedapi_filter_settings_'. $type);
+  }
+}
+
