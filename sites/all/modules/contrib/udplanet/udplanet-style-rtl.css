@@ -1,0 +1,31 @@
+div.udp-person-info {
+  float: right;
+  background: url(images/bubble/bubble-nipple-rtl.png) top left no-repeat;
+}
+
+div.udp-post {
+  background: #ffffff url(images/bubble/bubble-left.png) left repeat-y;
+  margin-left: 0px;
+  margin-right: 130px;
+}
+
+div.udp-post-footer p a {
+  text-align: left;
+}
+
+h2.udp-date {
+  text-align: left;
+  padding-right: 150px;
+}
+
+h4.udp-post-title a, div.post-title span {
+  text-align: right;
+}
+
+div.udp-post-contents {
+  text-align: right;
+}  
+
+.udp-inside {
+  text-align: right;
+}

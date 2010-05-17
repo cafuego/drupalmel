@@ -1,0 +1,168 @@
+/* $Id: udplanet-style.css,v 1.1.2.5.2.1 2010/04/28 16:03:07 mtecknology Exp $ */
+
+div.udp-entry {
+  /*clear: both;*/
+  margin-bottom: 2em;
+  margin-right: 1em;
+}
+
+div.udp-person-info {
+  float: left;
+  position: relative;
+  left: 4px;
+  margin-top: 25px!important;
+  padding: 0 20px 30px 0;
+  width: 120px;
+  background: url(images/bubble/bubble-nipple.png) top right no-repeat;
+  text-align: center;
+}
+
+div.udp-person-info a {
+  text-decoration: none;
+  color: #666666;
+}
+
+div.udp-post {
+  background: #ffffff url(images/bubble/bubble-left.png) left repeat-y;
+  margin-left: 140px;
+}
+
+div.udp-post2 {
+  background: url(images/bubble/bubble-right.png) right repeat-y;
+}
+
+div.udp-post-contents {
+  padding: 0 25px 0 25px;
+  margin-right: 10px;
+  overflow: auto;
+}
+
+div.udp-post-contents p {
+  line-height: 140%;
+  margin-top: 1em!important;
+}
+
+div.udp-post-contents blockquote {
+  color: #666666;
+  line-height: 150%;
+}
+
+div.udp-post-contents:after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+h4.udp-post-title, div.post-title {
+  background: url(images/bubble/bubble-top-left.png) top left no-repeat;
+  margin: 1em 0 0 0;
+}
+
+h4.udp-post-title a, div.post-title span {
+  display: block;
+  background: url(images/bubble/bubble-top-right.png) top right no-repeat;
+  padding: 22px 25px 0 25px;
+  font-weight: normal;
+  font-size: 180%;
+  font-family: Verdana,arial,helvetica,sans-serif;
+  text-decoration: none;
+  text-shadow: 0.2em 0.2em 3px #999999;
+  /*color: #999999;*/
+  color: #000000;
+}
+
+h4.udp-post-title a:hover {
+  text-decoration: underline;
+}
+
+div.udp-post-title span {
+  display: block;
+  height: 20px;
+  font-size: 100%;
+}
+
+div.udp-post-title {
+  display: block;
+}
+
+div.udp-post-header {
+  background: url(images/bubble/bubble-top.png) top repeat-x;
+}
+
+
+div.udp-post-footer {
+  background: url(images/bubble/bubble-bottom.png) bottom repeat-x;
+}
+
+div.udp-post-footer p {
+  background: url(images/bubble/bubble-bottom-left.png) bottom left no-repeat;
+  margin: 0;
+}
+
+div.udp-post-footer p a {
+  display: block;
+  background: url(images/bubble/bubble-bottom-right.png) bottom right no-repeat;
+  padding: 15px 20px 20px 25px;
+  text-align: right;
+  font-size: 85%;
+  color: #999999;
+  text-decoration: none;
+}
+
+div.udp-post-footer p a:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+
+h2.udp-date {
+  color: #666666;
+  font-weight: bold;
+  font-size: 200%;
+  padding-left: 10px;
+  padding-top: 1em;
+  padding-bottom: 1em;
+  border-bottom: medium none;
+  text-shadow: 0.2em 0.2em 3px #999999;
+}
+
+#udp-rightColumns {
+  padding-bottom: 1em;
+  padding-top: 3em;
+  margin: 0 -18em 0 1px;
+}
+
+.udp-inside {
+  font-size: 100%;
+  padding: 0 1.5em;
+}
+
+#udp-rightColumn h3, #udp-rightColumn h3 a {
+  color: #6D4C07;
+  font-weight: bold;
+  text-decoration: none;
+  border-bottom: 2px solid #6D4C07;
+  font-size: 130%;
+  margin-top: 20px;
+  text-shadow: 0.2em 0.2em 3px #999999;
+}
+
+#udp-rightColumn ul {
+  color: #696969;
+  list-style-image: none;
+  list-style-position: outside;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+#udp-rightColumn li {
+  margin-bottom: 0;
+  list-style-image: none;
+}
+
+#udp-rightColumn li a {
+  color: black;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: none;
+}

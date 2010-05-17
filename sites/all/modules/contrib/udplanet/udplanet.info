@@ -1,0 +1,14 @@
+name = UD Planet
+description = Mimics PlanetPlanet whish hosts planet.ubuntu.com.
+core = 6.x
+project = udplanet
+package = Ubuntu Drupal
+
+dependencies[] = aggregator
+
+; Information added by drupal.org packaging script on 2010-04-28
+version = "6.x-6.1"
+core = "6.x"
+project = "udplanet"
+datestamp = "1272470709"
+

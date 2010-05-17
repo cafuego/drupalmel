@@ -1,0 +1,85 @@
+<?php
+// $Id: udplanet.install,v 1.1.2.5.2.1 2010/04/28 16:03:07 mtecknology Exp $
+
+/**
+ * @file
+ * Install processes for the planet module
+ */
+
+/**
+ * Implementation of hook_install().
+ */
+
+function udplanet_install() {
+  // Create tables.
+  drupal_install_schema('udplanet');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ *
+ * This will automatically uninstall the database tables for the planet module for MySQL.
+ *
+ *
+ */
+
+function udplanet_uninstall() {
+  // Delete variables
+  variable_del('udplanet_feed_items');
+  variable_del('notice_1');
+  variable_del('udplanet_block_header');
+  variable_del('udplanet_block_feeds');
+  variable_del('udplanet_block_footer');
+  variable_del('udplanet_user_max');
+  variable_del('udplanet_user_add');
+  variable_del('udplanet_user_edit');
+  variable_del('notice_2');
+
+  // Delete Table
+  drupal_uninstall_schema('udplanet');
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+
+function udplanet_schema() {
+  $schema['udplanet_feeds'] = array(
+    'description' => t('Table for UD Planet.'),
+    'fields' => array(
+      'lid' => array(
+        'description' => t('Link ID'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => t('User ID the feed belongs to'),
+        'type' => 'int',
+        'unsigned' => 1,
+        'not null' => TRUE,
+      ),
+      'fid' => array(
+        'description' => t('Feed ID within aggregator module'),
+        'type' => 'varchar',
+        'length' => 80,
+        'not null' => TRUE,
+      ),
+      'disabled' => array(
+        'description' => t('Whether or not the feed is enabled'),
+        'type' => 'int',
+        'length' => 1,
+        'not null' => FALSE,
+      ),
+      'frozen' => array(
+        'description' => t('Same as enabled except only the administrator can control this'),
+        'type' => 'int',
+        'length' => 1,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('lid'),
+  );
+
+  return $schema;
+}
