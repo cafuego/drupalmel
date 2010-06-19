@@ -1,5 +1,5 @@
 <?php
-// $Id: simplenews.module,v 1.76.2.154 2010/03/30 07:35:39 sutharsan Exp $
+// $Id: simplenews.module,v 1.76.2.156 2010/05/19 14:01:22 sutharsan Exp $
 
 /**
  * @defgroup simplenews
@@ -519,7 +519,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
   }
 
   // Simplenews newsletter node form
-  elseif (strpos($form_id, '_node_form')) {
+  elseif (isset($form['type']) && isset($form['#node']) && strpos($form_id, '_node_form')) {
     if (in_array($form['type']['#value'], variable_get('simplenews_content_types', array('simplenews')))) {
 
       // Available variables are based on user_mail_tokens().
@@ -740,7 +740,8 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         }
       }
 
-      if ($category == 'newsletter' && user_access('subscribe to newsletters')) {
+      if ($category == 'newsletter' 
+       && (user_access('subscribe to newsletters', $account) || user_access('administer users'))) {
         foreach ($edit['newsletters'] as $tid => $checked) {
           if ($checked) {
             simplenews_subscribe_user($account->mail, $tid, FALSE);
@@ -766,7 +767,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'form':
-      if ($category == 'newsletter' && user_access('subscribe to newsletters')) {
+      if ($category == 'newsletter') {
         $subscription = simplenews_get_subscription($account);
         $form = _simplenews_subscription_manager_form($subscription);
         $form['subscriptions']['#title'] =  t('Current newsletter subscriptions');
@@ -775,12 +776,12 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'categories':
+      // Newsletter tab with custom permission check.
       $output[] = array(
         'name' => 'newsletter',
         'title' => t('My newsletters'),
         'weight' => 10,
-        'access callback' => 'user_access',
-        'access arguments' => array('subscribe to newsletters'),
+        'access callback' => 'simplenews_subscription_edit_access',
       );
       return $output;
       break;
@@ -805,14 +806,14 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         }
         // When a user has no permission to subscribe and is not subscribed
         // we do not display the 'no subscriptions' message.
-        if (user_access('subscribe to newsletters') || $subscriptions != t('None')) {
+        if (user_access('subscribe to newsletters', $account) || $subscriptions != t('None')) {
           $account->content['simplenews']['subscriptions'] = array(
             '#type' => 'user_profile_item',
             '#title' => t('Current subscriptions'),
             '#value' => $subscriptions,
           );
         }
-        if (user_access('subscribe to newsletters')) {
+        if (user_access('subscribe to newsletters', $account)) {
           $account->content['simplenews']['my_newsletters'] = array(
             '#type' => 'user_profile_item',
             '#value' => t('Manage <a href="!url">my subscriptions</a>', array('!url' => url('user/'. $account->uid .'/edit/newsletter'))),
@@ -822,6 +823,28 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
   }
+}
+
+/**
+ * Access callback for user newsletter editing.
+ */
+function simplenews_subscription_edit_access($account) {
+  global $user;
+  // Disallow anonymous.
+  if (!$account || $account->uid==0) {
+    return FALSE;
+  }
+  // Allow edit own subscription.
+  if ($user->uid == $account->uid) {
+    if (user_access('subscribe to newsletters', $account)) {
+      return TRUE;
+    } 
+  }
+  // Allow administrator to edit account's subscription.
+  if (user_access('administer users')) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -2203,7 +2226,7 @@ function simplenews_mail_tokens($subscription, $context, $language) {
   else {
     $vars = array();
     $vars['!site'] = variable_get('site_name', 'Drupal');
-    $vars['!mailto'] = $subscription->mail;
+    $vars['!mailto'] = isset($subscription->mail) ? $subscription->mail : '';
     $vars['!date'] = format_date(time(), 'medium', '', NULL, $language->language);
     $vars['!login_uri'] = url('user', array('absolute' => TRUE, 'language' => $language));
   }

@@ -1,33 +1,63 @@
 <?php
-// $Id: imce.install,v 1.2.2.2 2008/04/17 23:38:24 ufku Exp $
+// $Id: imce.install,v 1.3.2.4 2010/05/29 22:15:40 ufku Exp $
+
+/**
+ * @file
+ * Installs, updates, and uninstalls IMCE.
+ */
 
 /**
  * Implementation of hook_install().
  */
 function imce_install() {
-  include_once './'. drupal_get_path('module', 'imce') .'/inc/core_profiles.inc';
+  drupal_install_schema('imce');
+  module_load_include('inc', 'imce', 'inc/imce.core.profiles');
   imce_install_profiles();
+  drupal_set_message(t('!module has been installed.', array('!module' => l('IMCE', 'admin/settings/imce'))));
 }
 
 /**
  * Implementation of hook_uninstall().
  */
 function imce_uninstall() {
+  drupal_uninstall_schema('imce');
   variable_del('imce_profiles');
   variable_del('imce_roles_profiles');
   variable_del('imce_settings_textarea');
-  variable_del('imce_settings_absurl');
   variable_del('imce_settings_replace');
+  variable_del('imce_settings_thumb_method');
+  variable_del('imce_settings_disable_private');
   variable_del('imce_custom_content');
   variable_del('imce_custom_process');
   variable_del('imce_custom_scan');
 }
 
 /**
+ * Implementation of hook_schema().
+ */
+function imce_schema() {
+  $schema['imce_files'] = array(
+    'description' => t('Stores files created by IMCE.'),
+    'fields' => array(
+      'fid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => t('The {files}.fid that belongs to IMCE.'),
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+  return $schema;
+}
+
+/**
  * Update from 5.x to 6.x.
  */
 function imce_update_6000() {
-  imce_install();
+  module_load_include('inc', 'imce', 'inc/imce.core.profiles');
+  imce_install_profiles();
   return array();
 }
 
@@ -41,4 +71,36 @@ function imce_update_6001() {
   }
   variable_set('imce_profiles', $profiles);
   return array();
+}
+
+/**
+ * Make file browser tab optional in user profiles.
+ */
+function imce_update_6002() {
+  $profiles = variable_get('imce_profiles', array());
+  foreach ($profiles as $id => $profile) {
+    $profiles[$id]['usertab'] = isset($profiles[$id]['usertab']) ? $profiles[$id]['usertab'] : 1;
+  }
+  variable_set('imce_profiles', $profiles);
+  return array(array('success' => TRUE, 'query' => 'File browser tab in user profiles was made optional.'));
+}
+
+
+/**
+ * Convert 6.x-1.x to 6.x-2.x
+ */
+function imce_update_6200() {
+  //delete deprecated variables
+  variable_del('imce_settings_absurls');
+  return array();
+}
+
+/**
+ * Introduce {imce_files} db table where IMCE files are stored.
+ */
+function imce_update_6201() {
+  $ret = array();
+  $schema = imce_schema();
+  db_create_table($ret, 'imce_files', $schema['imce_files']);
+  return $ret;
 }

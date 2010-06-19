@@ -1,5 +1,5 @@
 <?php
-// $Id: simplenews.install,v 1.8.2.31 2010/03/30 12:24:26 sutharsan Exp $
+// $Id: simplenews.install,v 1.8.2.33 2010/05/21 15:37:41 sutharsan Exp $
 
 /**
  * @file
@@ -608,4 +608,30 @@ function simplenews_update_6009() {
 function simplenews_update_6200() {
   // Added for compatibility with HEAD.
   return array();
+}
+
+/**
+ * Faulty update function. Corrected by the next one.
+ *
+ * @see simplenews_update_6011().
+ */
+function simplenews_update_6010() {
+  $ret = array();
+  // Function removed.
+  
+  return $ret;
+}
+
+/**
+ * Correction of field size mismatch caused by simplenews_update_6009().
+ */
+function simplenews_update_6011() {
+  $ret = array();
+  db_change_field($ret, 'simplenews_mail_spool', 'error', 'error', array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+  ));
+  return $ret;
 }
