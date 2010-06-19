@@ -1,0 +1,1359 @@
+diff --git editors/ckeditor.inc editors/ckeditor.inc
+index 8ac3ceb..808b4c1 100644
+--- editors/ckeditor.inc
++++ editors/ckeditor.inc
+@@ -28,6 +28,9 @@ function wysiwyg_ckeditor_editor() {
+         ),
+       ),
+     ),
++    'toolbar groups' => TRUE,
++    'toolbar rows' => TRUE,
++    'toolbar separator' => TRUE,
+     'version callback' => 'wysiwyg_ckeditor_version',
+     'themes callback' => 'wysiwyg_ckeditor_themes',
+     'settings callback' => 'wysiwyg_ckeditor_settings',
+@@ -189,52 +192,74 @@ function wysiwyg_ckeditor_settings($editor, $config, $theme) {
+     $settings['toolbarLocation'] = $config['toolbar_loc'];
+   }
+ 
+-  if (!empty($config['buttons'])) {
+-    $extra_plugins = array();
+-    $settings['toolbar'] = array();
+-    $plugins = wysiwyg_get_plugins($editor['name']);
+-    foreach ($config['buttons'] as $plugin => $buttons) {
+-      foreach ($buttons as $button => $enabled) {
+-        // Iterate separately over buttons and extensions properties.
+-        foreach (array('buttons', 'extensions') as $type) {
+-          // Skip unavailable plugins.
+-          if (!isset($plugins[$plugin][$type][$button])) {
+-            continue;
+-          }
+-          // Add buttons.
+-          if ($type == 'buttons') {
+-            $settings['toolbar'][] = $button;
+-          }
+-          // Add external Drupal plugins to the list of extensions.
+-          if ($type == 'buttons' && !empty($plugins[$plugin]['proxy'])) {
+-            $extra_plugins[] = $button;
+-          }
+-          // Add external plugins to the list of extensions.
+-          elseif ($type == 'buttons' && empty($plugins[$plugin]['internal'])) {
+-            $extra_plugins[] = $plugin;
+-          }
+-          // Add internal buttons that also need to be loaded as extension.
+-          elseif ($type == 'buttons' && !empty($plugins[$plugin]['load'])) {
+-            $extra_plugins[] = $plugin;
+-          }
+-          // Add plain extensions.
+-          elseif ($type == 'extensions' && !empty($plugins[$plugin]['load'])) {
+-            $extra_plugins[] = $plugin;
+-          }
+-          // Allow plugins to add or override global configuration settings.
+-          if (!empty($plugins[$plugin]['options'])) {
+-            $settings = array_merge($settings, $plugins[$plugin]['options']);
+-          }
+-        }
++  $extra_plugins = array();
++  $toolbar = array();
++  $plugins = wysiwyg_get_plugins($editor['name']);
++
++  foreach ((array)$config['extensions'] as $plugin => $buttons) {
++    foreach ($buttons as $button => $enabled) {
++      if (!isset($plugins[$plugin]['extensions'][$button])) {
++        continue;
++      }
++
++      // Add plain extensions.
++      if (!empty($plugins[$plugin]['load'])) {
++        $extra_plugins[] = $plugin;
++      }
++
++      // Allow plugins to add or override global configuration settings.
++      if (!empty($plugins[$plugin]['options'])) {
++        $settings = array_merge($settings, $plugins[$plugin]['options']);
+       }
+     }
+-    if (!empty($extra_plugins)) {
+-      $settings['extraPlugins'] = implode(',', $extra_plugins);
+-    }
+-    // For now, all buttons are placed into one row.
+-    if (!empty($settings['toolbar'])) {
+-      $settings['toolbar'] = array($settings['toolbar']);
++  }
++
++  foreach ((array)$config['toolbar'] as $row) {
++    foreach ($row as $buttons) {
++      $group = array();
++
++      foreach ($buttons as $button_config) {
++        $plugin = $button_config['plugin'];
++        $button = $button_config['button'];
++
++        if ($button == 'separator') {
++          $group[] = '-';
++          continue;
++        }
++        if (!isset($plugins[$plugin]['buttons'][$button])) {
++          continue;
++        }
++
++        $group[] = $button;
++
++        // Add external Drupal plugins to the list of extensions.
++        if (!empty($plugins[$plugin]['proxy']) || empty($plugins[$plugin]['internal']) || !empty($plugins[$plugin]['load'])) {
++          $extra_plugins[] = $button;
++        }
++
++        // Allow plugins to add or override global configuration settings.
++        if (!empty($plugins[$plugin]['options'])) {
++          $settings = array_merge($settings, $plugins[$plugin]['options']);
++        }
++      }
++
++      $toolbar[] = $group;
+     }
++
++    $toolbar[] = '/'; // toolbar line break
++  }
++
++  // Remove the last '/'.
++  if (end($toolbar) == '/') {
++    array_pop($toolbar);
++  }
++
++  if (!empty($extra_plugins)) {
++    $settings['extraPlugins'] = implode(',', array_unique($extra_plugins));
++  }
++
++  if (!empty($toolbar)) {
++    $settings['toolbar'] = $toolbar;
+   }
+ 
+   return $settings;
+diff --git editors/fckeditor.inc editors/fckeditor.inc
+index 3da106c..a5a527f 100644
+--- editors/fckeditor.inc
++++ editors/fckeditor.inc
+@@ -20,6 +20,9 @@ function wysiwyg_fckeditor_editor() {
+         'files' => array('fckeditor.js'),
+       ),
+     ),
++    'toolbar groups' => TRUE,
++    'toolbar rows' => TRUE,
++    'toolbar separator' => TRUE,
+     'version callback' => 'wysiwyg_fckeditor_version',
+     'themes callback' => 'wysiwyg_fckeditor_themes',
+     'settings callback' => 'wysiwyg_fckeditor_settings',
+@@ -132,40 +135,66 @@ function wysiwyg_fckeditor_settings($editor, $config, $theme) {
+     if ($config['css_setting'] == 'theme') {
+       $settings['EditorAreaCSS'] = implode(',', wysiwyg_get_css());
+     }
+-    else if ($config['css_setting'] == 'self' && isset($config['css_path'])) {
++    elseif ($config['css_setting'] == 'self' && isset($config['css_path'])) {
+       $settings['EditorAreaCSS'] = strtr($config['css_path'], array('%b' => base_path(), '%t' => path_to_theme()));
+     }
+   }
+ 
+-  if (!empty($config['buttons'])) {
+-    // Use our custom toolbar set.
+-    $settings['ToolbarSet'] = 'Wysiwyg';
+-    // Populate our custom toolbar set for fckeditor.config.js.
+-    $settings['buttons'] = array();
+-    $plugins = wysiwyg_get_plugins($editor['name']);
+-    foreach ($config['buttons'] as $plugin => $buttons) {
+-      foreach ($buttons as $button => $enabled) {
+-        // Iterate separately over buttons and extensions properties.
+-        foreach (array('buttons', 'extensions') as $type) {
+-          // Skip unavailable plugins.
+-          if (!isset($plugins[$plugin][$type][$button])) {
+-            continue;
+-          }
+-          // Add buttons.
+-          if ($type == 'buttons') {
+-            $settings['buttons'][] = $button;
+-          }
+-          // Allow plugins to add or override global configuration settings.
+-          if (!empty($plugins[$plugin]['options'])) {
+-            $settings = array_merge($settings, $plugins[$plugin]['options']);
+-          }
+-        }
++  $plugins = wysiwyg_get_plugins($editor['name']);
++  $toolbar = array();
++
++  foreach ((array)$config['extensions'] as $plugin => $buttons) {
++    foreach ($buttons as $button => $enabled) {
++      if (!isset($plugins[$plugin]['extensions'][$button])) {
++        continue;
++      }
++
++      // Allow plugins to add or override global configuration settings.
++      if (!empty($plugins[$plugin]['options'])) {
++        $settings = array_merge($settings, $plugins[$plugin]['options']);
+       }
+     }
+-    // For now, all buttons are placed into one row.
+-    if (!empty($settings['buttons'])) {
+-      $settings['buttons'] = array($settings['buttons']);
++  }
++
++  foreach ((array)$config['toolbar'] as $row) {
++    foreach ($row as $buttons) {
++      $group = array();
++
++      foreach ($buttons as $button_config) {
++        $plugin = $button_config['plugin'];
++        $button = $button_config['button'];
++
++        if ($button == 'separator') {
++          $group[] = '-';
++          continue;
++        }
++        if (!isset($plugins[$plugin]['buttons'][$button])) {
++          continue;
++        }
++
++        $group[] = $button;
++
++        // Allow plugins to add or override global configuration settings.
++        if (!empty($plugins[$plugin]['options'])) {
++          $settings = array_merge($settings, $plugins[$plugin]['options']);
++        }
++      }
++
++      $toolbar[] = $group;
+     }
++
++    $toolbar[] = '/';
++  }
++
++  // Remove the last '/'.
++  if (end($toolbar) == '/') {
++    array_pop($toolbar);
++  }
++
++  if (!empty($toolbar)) {
++    // Use our custom toolbar set.
++    $settings['ToolbarSet'] = 'DrupalWysiwyg';
++    $settings['ToolbarSets']['DrupalWysiwyg'] = $toolbar;
+   }
+ 
+   return $settings;
+diff --git editors/js/fckeditor.config.js editors/js/fckeditor.config.js
+index 2c3415f..549bcfb 100644
+--- editors/js/fckeditor.config.js
++++ editors/js/fckeditor.config.js
+@@ -17,28 +17,7 @@ var pluginSettings = Drupal.settings.wysiwyg.plugins[wysiwygFormat];
+  * Apply format-specific settings.
+  */
+ for (var setting in wysiwygSettings) {
+-  if (setting == 'buttons') {
+-    // Apply custom Wysiwyg toolbar for this format.
+-    // FCKConfig.ToolbarSets['Wysiwyg'] = wysiwygSettings.buttons;
+-
+-    // Temporarily stack buttons into multiple button groups and remove
+-    // separators until #277954 is solved.
+-    FCKConfig.ToolbarSets['Wysiwyg'] = [];
+-    for (var i = 0; i < wysiwygSettings.buttons[0].length; i++) {
+-      FCKConfig.ToolbarSets['Wysiwyg'].push([wysiwygSettings.buttons[0][i]]);
+-    }
+-    FCKTools.AppendStyleSheet(document, '#xToolbar .TB_Start { display:none; }');
+-    // Set valid height of select element in silver and office2003 skins.
+-    if (FCKConfig.SkinPath.match(/\/office2003\/$/)) {
+-      FCKTools.AppendStyleSheet(document, '#xToolbar .SC_FieldCaption { height: 24px; } #xToolbar .TB_End { display: none; }');
+-    }
+-    else if (FCKConfig.SkinPath.match(/\/silver\/$/)) {
+-      FCKTools.AppendStyleSheet(document, '#xToolbar .SC_FieldCaption { height: 27px; }');
+-    }
+-  }
+-  else {
+-    FCKConfig[setting] = wysiwygSettings[setting];
+-  }
++  FCKConfig[setting] = wysiwygSettings[setting];
+ }
+ 
+ /**
+diff --git editors/js/tinymce-3.js editors/js/tinymce-3.js
+index c90ffd5..833b1ec 100644
+--- editors/js/tinymce-3.js
++++ editors/js/tinymce-3.js
+@@ -55,15 +55,7 @@ Drupal.wysiwyg.editor.attach.tinymce = function(context, params, settings) {
+   ed.onEvent.add(function(ed, e) {
+     Drupal.wysiwyg.activeId = ed.id;
+   });
+-  // Make toolbar buttons wrappable (required for IE).
+-  ed.onPostRender.add(function (ed) {
+-    var $toolbar = $('<div class="wysiwygToolbar"></div>');
+-    $('#' + ed.editorContainer + ' table.mceToolbar > tbody > tr > td').each(function () {
+-      $('<div></div>').addClass(this.className).append($(this).children()).appendTo($toolbar);
+-    });
+-    $('#' + ed.editorContainer + ' table.mceLayout td.mceToolbar').append($toolbar);
+-    $('#' + ed.editorContainer + ' table.mceToolbar').remove();
+-  });
++
+   // Attach editor.
+   ed.render();
+ };
+diff --git editors/markitup.inc editors/markitup.inc
+index d4e6e5b..b3b0b19 100644
+--- editors/markitup.inc
++++ editors/markitup.inc
+@@ -147,11 +147,13 @@ function wysiwyg_markitup_settings($editor, $config, $theme) {
+       'call' => 'preview',
+     ),
+   );
+-  if (!empty($config['buttons'])) {
+-    foreach ($config['buttons'] as $plugin) {
+-      foreach ($plugin as $button => $enabled) {
+-        if (isset($default_buttons[$button])) {
+-          $settings['markupSet'][$button] = $default_buttons[$button];
++  if (!empty($config['toolbar'])) {
++    $settings['markupSet'] = array();
++
++    foreach ($config['toolbar'] as $row) {
++      foreach ($row as $group) {
++        foreach ($group as $button) {
++          $settings['markupSet'][$button['button']] = $default_buttons[$button['button']];
+         }
+       }
+     }
+diff --git editors/nicedit.inc editors/nicedit.inc
+index 30ce42d..ce86839 100644
+--- editors/nicedit.inc
++++ editors/nicedit.inc
+@@ -66,12 +66,16 @@ function wysiwyg_nicedit_settings($editor, $config, $theme) {
+   );
+ 
+   // Add configured buttons or all available.
+-  if (!empty($config['buttons'])) {
++  if (!empty($config['toolbar'])) {
+     $buttons = array();
+-    foreach ($config['buttons'] as $plugin) {
+-      $buttons = array_merge($buttons, $plugin);
++    foreach ($config['toolbar'] as $row) {
++      foreach ($row as $group) {
++        foreach ($group as $button) {
++          $buttons[] = $button['button'];
++        }
++      }
+     }
+-    $settings['buttonList'] = array_keys($buttons);
++    $settings['buttonList'] = $buttons;
+   }
+   else {
+     $settings['fullPanel'] = TRUE;
+@@ -85,7 +89,7 @@ function wysiwyg_nicedit_settings($editor, $config, $theme) {
+         $settings['externalCSS'] = base_path() . $css;
+       }
+     }
+-    else if ($config['css_setting'] == 'self' && isset($config['css_path'])) {
++    elseif ($config['css_setting'] == 'self' && isset($config['css_path'])) {
+       $settings['externalCSS'] = strtr($config['css_path'], array('%b' => base_path(), '%t' => path_to_theme()));
+     }
+   }
+diff --git editors/openwysiwyg.inc editors/openwysiwyg.inc
+index fa2c411..58a24b8 100644
+--- editors/openwysiwyg.inc
++++ editors/openwysiwyg.inc
+@@ -21,6 +21,8 @@ function wysiwyg_openwysiwyg_editor() {
+         'files' => array('wysiwyg.js'),
+       ),
+     ),
++    'toolbar rows' => TRUE,
++    'toolbar separator' => TRUE,
+     'version callback' => 'wysiwyg_openwysiwyg_version',
+     'themes callback' => 'wysiwyg_openwysiwyg_themes',
+     'settings callback' => 'wysiwyg_openwysiwyg_settings',
+@@ -108,25 +110,36 @@ function wysiwyg_openwysiwyg_settings($editor, $config, $theme) {
+     }
+   }
+ 
+-  if (!empty($config['buttons'])) {
++  if (!empty($config['toolbar'])) {
++    $toolbar = array();
+     $plugins = wysiwyg_get_plugins($editor['name']);
+-    foreach ($config['buttons'] as $plugin => $buttons) {
+-      foreach ($buttons as $button => $enabled) {
+-        foreach (array('buttons', 'extensions') as $type) {
++    foreach ($config['toolbar'] as $row) {
++      $toolbar_row = array();
++
++      foreach ($row as $buttons) {
++        foreach ($buttons as $button_config) {
+           // Skip unavailable plugins.
+-          if (!isset($plugins[$plugin][$type][$button])) {
+-            continue;
++          $plugin = $button_config['plugin'];
++          $button = $button_config['button'];
++
++          if ($button == 'separator') {
++            $toolbar_row[] = 'seperator';
+           }
+-          // Add buttons.
+-          if ($type == 'buttons') {
+-            $settings['Toolbar'][0][] = $button;
++          elseif (!isset($plugins[$plugin]['buttons'][$button])) {
++            continue;
+           }
++
++          $toolbar_row[] = $button;
+         }
+       }
++
++      $toolbar[] = $toolbar_row;
+     }
++
++    $settings['Toolbar'] = $toolbar;
+   }
+ 
+-  // @todo 
++  // @todo
+ //  if (isset($config['block_formats'])) {
+ //    $settings['DropDowns']['headings']['elements'] = explode(',', $config['block_formats']);
+ //  }
+diff --git editors/tinymce.inc editors/tinymce.inc
+index fad0c2d..89a85ad 100644
+--- editors/tinymce.inc
++++ editors/tinymce.inc
+@@ -27,6 +27,8 @@ function wysiwyg_tinymce_editor() {
+         'files' => array('tiny_mce_src.js'),
+       ),
+     ),
++    'toolbar rows' => TRUE,
++    'toolbar separator' => TRUE,
+     'version callback' => 'wysiwyg_tinymce_version',
+     'themes callback' => 'wysiwyg_tinymce_themes',
+     'settings callback' => 'wysiwyg_tinymce_settings',
+@@ -191,75 +193,88 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
+     if ($config['css_setting'] == 'theme') {
+       $settings['content_css'] = implode(',', wysiwyg_get_css());
+     }
+-    else if ($config['css_setting'] == 'self' && isset($config['css_path'])) {
++    elseif ($config['css_setting'] == 'self' && isset($config['css_path'])) {
+       $settings['content_css'] = strtr($config['css_path'], array('%b' => base_path(), '%t' => path_to_theme()));
+     }
+   }
+ 
+-  // Find the enabled buttons and the button row they belong on.
+-  // Also map the plugin metadata for each button.
+-  // @todo What follows is a pain; needs a rewrite.
+-  if (!empty($config['buttons']) && is_array($config['buttons'])) {
+-    // $settings['buttons'] are stacked into
+-    // $settings['theme_advanced_buttons1'] later.
+-    // @todo Add a toolbar designer based on jQuery UI.
+-    $settings['buttons'] = array();
+-    // Only array keys in $settings['extensions'] matter; added to
+-    // $settings['plugins'] later.
+-    $settings['extensions'] = array();
+-    // $settings['extended_valid_elements'] are just stacked, unique'd later,
+-    // and transformed into a comma-separated string in
+-    // wysiwyg_add_editor_settings().
+-    // @todo Needs a complete plugin API redesign using arrays for
+-    //   tag => attributes definitions and array_merge_recursive().
+-    $settings['extended_valid_elements'] = array();
++  $plugins = wysiwyg_get_plugins($editor['name']);
++  $settings['extended_valid_elements'] = array();
++  $toolbar = array();
++  $extensions = array();
+ 
+-    $plugins = wysiwyg_get_plugins($editor['name']);
+-    foreach ($config['buttons'] as $plugin => $buttons) {
+-      foreach ($buttons as $button => $enabled) {
+-        // Iterate separately over buttons and extensions properties.
+-        foreach (array('buttons', 'extensions') as $type) {
+-          // Skip unavailable plugins.
+-          if (!isset($plugins[$plugin][$type][$button])) {
+-            continue;
+-          }
+-          // Add buttons.
+-          if ($type == 'buttons') {
+-            $settings['buttons'][] = $button;
+-          }
+-          // Add external Drupal plugins to the list of extensions.
+-          if ($type == 'buttons' && !empty($plugins[$plugin]['proxy'])) {
+-            $settings['extensions'][_wysiwyg_tinymce_plugin_name('add', $button)] = 1;
+-          }
+-          // Add external plugins to the list of extensions.
+-          else if ($type == 'buttons' && empty($plugins[$plugin]['internal'])) {
+-            $settings['extensions'][_wysiwyg_tinymce_plugin_name('add', $plugin)] = 1;
+-          }
+-          // Add internal buttons that also need to be loaded as extension.
+-          else if ($type == 'buttons' && !empty($plugins[$plugin]['load'])) {
+-            $settings['extensions'][$plugin] = 1;
+-          }
+-          // Add plain extensions.
+-          else if ($type == 'extensions' && !empty($plugins[$plugin]['load'])) {
+-            $settings['extensions'][$plugin] = 1;
+-          }
+-          // Allow plugins to add valid HTML elements.
+-          if (!empty($plugins[$plugin]['extended_valid_elements'])) {
+-            $settings['extended_valid_elements'] = array_merge($settings['extended_valid_elements'], $plugins[$plugin]['extended_valid_elements']);
+-          }
+-          // Allow plugins to add or override global configuration settings.
+-          if (!empty($plugins[$plugin]['options'])) {
+-            $settings = array_merge($settings, $plugins[$plugin]['options']);
+-          }
+-        }
++  foreach ((array)$config['extensions'] as $plugin => $buttons) {
++    foreach ($buttons as $button => $enabled) {
++      if (!isset($plugins[$plugin], $plugins[$plugin]['extensions'], $plugins[$plugin]['extensions'][$button])) {
++        continue;
++      }
++
++      // Add plain extensions.
++      if (!empty($plugins[$plugin]['load'])) {
++        $extensions[$plugin] = 1;
++      }
++
++      // Allow plugins to add valid HTML elements.
++      if (!empty($plugins[$plugin]['extended_valid_elements'])) {
++        $settings['extended_valid_elements'] = array_merge($settings['extended_valid_elements'], $plugins[$plugin]['extended_valid_elements']);
++      }
++
++      // Allow plugins to add or override global configuration settings.
++      if (!empty($plugins[$plugin]['options'])) {
++        $settings = array_merge($settings, $plugins[$plugin]['options']);
+       }
+     }
+-    // Clean-up.
+-    $settings['extended_valid_elements'] = array_unique($settings['extended_valid_elements']);
+-    if ($settings['extensions']) {
+-      $settings['plugins'] = array_keys($settings['extensions']);
++  }
++
++  foreach ((array)$config['toolbar'] as $row) {
++    $group = array();
++
++    foreach ($row as $buttons) {
++      foreach ($buttons as $button_config) {
++        $plugin = $button_config['plugin'];
++        $button = $button_config['button'];
++
++        if ($button == 'separator') {
++          $group[] = '|';
++          continue;
++        }
++        if (!isset($plugins[$plugin]['buttons'][$button])) {
++          continue;
++        }
++
++        $group[] = $button;
++
++        // Add external Drupal plugins to the list of extensions.
++        if (!empty($plugins[$plugin]['proxy'])) {
++          $extensions[_wysiwyg_tinymce_plugin_name('add', $button)] = 1;
++        }
++        // Add external plugins to the list of extensions.
++        elseif (empty($plugins[$plugin]['internal'])) {
++          $extensions[_wysiwyg_tinymce_plugin_name('add', $plugin)] = 1;
++        }
++        // Add internal buttons that also need to be loaded as extension.
++        elseif (!empty($plugins[$plugin]['load'])) {
++          $extensions[$plugin] = 1;
++        }
++
++        // Allow plugins to add or override global configuration settings.
++        if (!empty($plugins[$plugin]['options'])) {
++          $settings = array_merge($settings, $plugins[$plugin]['options']);
++        }
++
++        // Allow plugins to add valid HTML elements.
++        if (!empty($plugins[$plugin]['extended_valid_elements'])) {
++          $settings['extended_valid_elements'] = array_merge($settings['extended_valid_elements'], $plugins[$plugin]['extended_valid_elements']);
++        }
++      }
+     }
+-    unset($settings['extensions']);
++
++    $toolbar[] = $group;
++  }
++
++  $settings['extended_valid_elements'] = array_unique($settings['extended_valid_elements']);
++  if ($extensions) {
++    $settings['plugins'] = array_keys($extensions);
+   }
+ 
+   // Add theme-specific settings.
+@@ -276,7 +291,7 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
+       if (isset($config['block_formats'])) {
+         $settings['theme_advanced_blockformats'] = $config['block_formats'];
+       }
+-      if (isset($settings['buttons'])) {
++      if ($toolbar) {
+         // These rows explicitly need to be set to be empty, otherwise TinyMCE
+         // loads its default buttons of the advanced theme for each row.
+         $settings += array(
+@@ -284,14 +299,17 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
+           'theme_advanced_buttons2' => array(),
+           'theme_advanced_buttons3' => array(),
+         );
+-        // @todo Allow to sort/arrange editor buttons.
+-        for ($i = 0; $i < count($settings['buttons']); $i++) {
+-          $settings['theme_advanced_buttons1'][] = $settings['buttons'][$i];
++
++        for ($i = 0;$i < count($toolbar);$i++) {
++          $group = $toolbar[$i];
++
++          foreach ($group as $button) {
++            $settings['theme_advanced_buttons' . ($i+1)][] = $button;
++          }
+         }
+       }
+       break;
+   }
+-  unset($settings['buttons']);
+ 
+   // Convert the config values into the form expected by TinyMCE.
+   foreach ($settings as $key => $value) {
+diff --git images/add.png images/add.png
+new file mode 100644
+index 0000000..6332fef
+Binary files /dev/null and images/add.png differ
+diff --git images/draggable.png images/draggable.png
+new file mode 100644
+index 0000000..47e8a02
+Binary files /dev/null and images/draggable.png differ
+diff --git wysiwyg-toolbar-designer.tpl.php wysiwyg-toolbar-designer.tpl.php
+new file mode 100644
+index 0000000..8d9cd8c
+--- /dev/null
++++ wysiwyg-toolbar-designer.tpl.php
+@@ -0,0 +1,33 @@
++<div id="wysiwyg-toolbar-designer">
++  <h4><?php print t('Available buttons'); ?></h4>
++  <div id="toolbar-available-buttons">
++    <?php foreach ($form['buttons']['#value'] as $button): ?>
++    <span class="wysiwyg-button wysiwyg-button-<?php print $button['plugin'] . '-' . $button['button'];?>">
++      <?php echo $button['title']; ?>
++    </span>
++    <?php endforeach;?>
++  </div>
++
++  <h4><?php print t('Toolbar'); ?></h4>
++
++  <div class="warning">
++    <span class="warning">*</span> <?php print t('Changes will not be saved until the form is submitted.'); ?>
++  </div>
++
++  <div id="toolbar-rows"></div>
++
++  <div id="toolbar-actions">
++    <a title="<?php print t('Add new row') ;?>" class="add-toolbar-row" href="javascript:;">&nbsp;</a>
++    <input id="reset-design" type="button" value="<?php print t('Reset'); ?>"/>
++  </div>
++
++  <div class="toolbar-row-template">
++    <a href="javascript:;" class="row-handler handler">&nbsp;</a>
++    <a href="javascript:;" class="add-group">&nbsp;</a>
++  </div>
++
++  <div class="toolbar-group-template">
++    <a href="javascript:;" class="group-handler handler">&nbsp;</a>
++  </div>
++  <?php echo drupal_render($form['toolbar']) ?>
++</div>
+diff --git wysiwyg.admin.inc wysiwyg.admin.inc
+index 26e3b6f..d707a05 100644
+--- wysiwyg.admin.inc
++++ wysiwyg.admin.inc
+@@ -7,9 +7,9 @@
+  */
+ 
+ /**
+- * Form builder for Wysiwyg profile form.
++ * Prepare default properties for profile.
+  */
+-function wysiwyg_profile_form($form_state, $profile) {
++function wysiwyg_profile_default($profile) {
+   // Merge in defaults.
+   $profile = (array) $profile;
+   $profile += array(
+@@ -46,10 +46,21 @@ function wysiwyg_profile_form($form_state, $profile) {
+   );
+   $profile = (object) $profile;
+ 
++  return $profile;
++}
++
++/**
++ * Form builder for Wysiwyg profile form.
++ */
++function wysiwyg_profile_form($form_state, $profile) {
++  $profile = wysiwyg_profile_default($profile);
++
+   $formats = filter_formats();
+   $editor = wysiwyg_get_editor($profile->editor);
+   drupal_set_title(t('%editor profile for %format', array('%editor' => $editor['title'], '%format' => $formats[$profile->format]->name)));
+ 
++  $form_state['storage']['profile'] = $profile;
++
+   $form['format'] = array('#type' => 'value', '#value' => $profile->format);
+   $form['input_format'] = array('#type' => 'value', '#value' => $formats[$profile->format]->name);
+   $form['editor'] = array('#type' => 'value', '#value' => $profile->editor);
+@@ -98,51 +109,91 @@ function wysiwyg_profile_form($form_state, $profile) {
+     '#description' => t('The language to use for the editor interface. Language codes are based on the <a href="http://www.loc.gov/standards/iso639-2/englangn.html">ISO-639-2</a> format.'),
+   );
+ 
+-  $form['buttons'] = array(
++  $form['extensions'] = array(
+     '#type' => 'fieldset',
+-    '#title' => t('Buttons and plugins'),
++    '#title' => t('Extensions'),
+     '#collapsible' => TRUE,
+     '#collapsed' => TRUE,
+     '#tree' => TRUE,
+     '#theme' => 'wysiwyg_admin_button_table',
+   );
+ 
++  // Get all available buttons.
+   $plugins = wysiwyg_get_plugins($profile->editor);
+-  // Generate the button list.
++  $buttons = array();
++
++  // Generate the extensions list and button array.
+   foreach ($plugins as $name => $meta) {
+-    if (isset($meta['buttons']) && is_array($meta['buttons'])) {
+-      foreach ($meta['buttons'] as $button => $title) {
+-        $icon = '';
+-        if (!empty($meta['path'])) {
+-          // @todo Button icon locations are different in editors, editor versions,
+-          //   and contrib/custom plugins (like Image Assist, f.e.).
+-          $img_src = $meta['path'] . "/images/$name.gif";
+-          // Handle plugins that have more than one button.
+-          if (!file_exists($img_src)) {
+-            $img_src = $meta['path'] . "/images/$button.gif";
+-          }
+-          $icon = file_exists($img_src) ? '<img src="' . base_path() . $img_src . '" title="' . $button . '" style="border: 1px solid grey; vertical-align: middle;" />' : '';
+-        }
+-        $title = (isset($meta['url']) ? l($title, $meta['url'], array('target' => '_blank')) : $title);
+-        $title = (!empty($icon) ? $icon . ' ' . $title : $title);
+-        $form['buttons'][$name][$button] = array(
++    if (isset($meta['extensions']) && is_array($meta['extensions'])) {
++      foreach ($meta['extensions'] as $extension => $title) {
++        $form['extensions'][$name][$extension] = array(
+           '#type' => 'checkbox',
+-          '#title' => $title,
+-          '#default_value' => !empty($profile->settings['buttons'][$name][$button]) ? $profile->settings['buttons'][$name][$button] : FALSE,
++          '#title' => isset($meta['url']) ? l($title, $meta['url'], array('target' => '_blank')) : $title,
++          '#default_value' => !empty($profile->settings['extensions'][$name][$extension]) ? $profile->settings['extensions'][$name][$extension] : FALSE,
+         );
+       }
+     }
+-    else if (isset($meta['extensions']) && is_array($meta['extensions'])) {
+-      foreach ($meta['extensions'] as $extension => $title) {
+-        $form['buttons'][$name][$extension] = array(
+-          '#type' => 'checkbox',
+-          '#title' => isset($meta['url']) ? l($title, $meta['url'], array('target' => '_blank')) : $title,
+-          '#default_value' => !empty($profile->settings['buttons'][$name][$extension]) ? $profile->settings['buttons'][$name][$extension] : FALSE,
++
++    if (isset($meta['buttons']) && is_array($meta['buttons'])) {
++      foreach ($meta['buttons'] as $button => $title) {
++        $buttons[] = array(
++          'plugin' => $name,
++          'button' => $button,
++          'title' => $title,
+         );
+       }
+     }
+   }
+ 
++  // Get toolbar support array.
++  if (count($buttons)) {
++    $toolbar_support = array(
++      'toolbar separator' => !empty($editor['toolbar separator']),
++      'toolbar groups' => !empty($editor['toolbar groups']),
++      'toolbar rows' => !empty($editor['toolbar rows']),
++    );
++
++    // Separator.
++    if ($toolbar_support['toolbar separator']) {
++      array_unshift($buttons, array(
++        'plugin' => 'default',
++        'button' => 'separator',
++        'title' => t('Separator'),
++      ));
++    }
++
++    $toolbar = (array)$profile->settings['toolbar'];
++
++    $toolbar_support = array_merge($toolbar_support, array(
++      'callbackUrl' => url('admin/settings/wysiwyg/profile/' . $profile->format . '/toolbar/save'),
++      'toolbar' => $toolbar,
++    ));
++
++    // Add necessary javascripts and stylesheets.
++    drupal_add_js(array('wysiwyg_toolbar' => $toolbar_support), 'setting');
++    jquery_ui_add(array('ui.draggable', 'ui.droppable', 'ui.sortable'));
++    drupal_add_js(drupal_get_path('module', 'wysiwyg') . '/wysiwyg.admin_toolbar.js');
++    drupal_add_css(drupal_get_path('module', 'wysiwyg') . '/wysiwyg.admin_toolbar.css');
++
++    $form['toolbar_designer'] = array(
++      '#type' => 'fieldset',
++      '#title' => t('Buttons'),
++      '#collapsible' => TRUE,
++      '#collapsed' => TRUE,
++      '#theme' => 'wysiwyg_admin_toolbar_designer',
++    );
++
++    $form['toolbar_designer']['buttons'] = array(
++      '#type' => 'value',
++      '#value' => $buttons,
++    );
++
++    $form['toolbar_designer']['toolbar'] = array(
++      '#type' => 'hidden',
++      '#default_value' => '',
++    );
++  }
++
+   $form['appearance'] = array(
+     '#type' => 'fieldset',
+     '#title' => t('Editor appearance'),
+@@ -296,31 +347,56 @@ function wysiwyg_profile_form($form_state, $profile) {
+  * @see wysiwyg_profile_form()
+  */
+ function wysiwyg_profile_form_submit($form, &$form_state) {
++  $profile = $form_state['storage']['profile'];
+   $values = $form_state['values'];
+-  if (isset($values['buttons'])) {
++  if (isset($values['extensions'])) {
+     // Store only enabled buttons for each plugin.
+-    foreach ($values['buttons'] as $plugin => $buttons) {
+-      $values['buttons'][$plugin] = array_filter($values['buttons'][$plugin]);
++    foreach ($values['extensions'] as $plugin => $buttons) {
++      $values['extensions'][$plugin] = array_filter($values['extensions'][$plugin]);
+     }
+     // Store only enabled plugins.
+-    $values['buttons'] = array_filter($values['buttons']);
++    $values['extensions'] = array_filter($values['extensions']);
+   }
++
++  $values['extensions'] = (array)$values['extensions'];
++
++  // Restore toolbar array
++  $raw_toolbar = explode("\n", trim($values['toolbar']));
++  $toolbar = array();
++
++  foreach ($raw_toolbar as $raw_row) {
++    $row = array();
++    $raw_groups = explode('|', rtrim($raw_row, '|'));
++    foreach ($raw_groups as $raw_group) {
++      $buttons = explode(',', $raw_group);
++      $group = array();
++      foreach ($buttons as $button) {
++        list($plugin, $name) = explode('.', $button, 2);
++
++        $group[] = array(
++          'button' => $name,
++          'plugin' => $plugin,
++        );
++      }
++      $row[] = $group;
++    }
++    $toolbar[] = $row;
++  }
++
++  $values['toolbar'] = count($toolbar) ? $toolbar : NULL;
++
+   // Remove input format name.
+   $format = $values['format'];
+   $input_format = $values['input_format'];
+   $editor = $values['editor'];
+-  unset($values['format'], $values['input_format'], $values['editor']);
+ 
+-  // Remove FAPI values.
+-  // @see system_settings_form_submit()
+-  unset($values['submit'], $values['form_id'], $values['op'], $values['form_token'], $values['form_build_id']);
++  $values = array_merge($profile->settings, wysiwyg_profile_clean($values));
+ 
+-  // Insert new profile data.
++  // Update profile settings.
+   db_query("UPDATE {wysiwyg} SET settings = '%s' WHERE format = %d", serialize($values), $format);
+ 
+   drupal_set_message(t('Wysiwyg profile for %format has been saved.', array('%format' => $input_format)));
+-
+-  $form_state['redirect'] = 'admin/settings/wysiwyg';
++  drupal_redirect_form($form, 'admin/settings/wysiwyg');
+ }
+ 
+ /**
+@@ -351,7 +427,12 @@ function theme_wysiwyg_admin_button_table($form) {
+     $rows[] = $row;
+   }
+ 
+-  $output = theme('table', array(), $rows, array('width' => '100%'));
++  if (count($rows)) {
++    $output = theme('table', array(), $rows, array('width' => '100%'));
++  }
++  else {
++    $output = '';
++  }
+ 
+   return $output;
+ }
+@@ -529,3 +610,15 @@ function wysiwyg_profile_delete($format) {
+   db_query("DELETE FROM {wysiwyg} WHERE format = %d", $format);
+ }
+ 
++/**
++ * Clean submitted setting values
++ */
++function wysiwyg_profile_clean($values) {
++  unset($values['format'], $values['input_format'], $values['editor']);
++
++  // Remove FAPI values.
++  // @see system_settings_form_submit()
++  unset($values['submit'], $values['form_id'], $values['op'], $values['form_token'], $values['form_build_id']);
++
++  return $values;
++}
+diff --git wysiwyg.admin_toolbar.css wysiwyg.admin_toolbar.css
+new file mode 100644
+index 0000000..77a3359
+--- /dev/null
++++ wysiwyg.admin_toolbar.css
+@@ -0,0 +1,97 @@
++/* $Id$ */
++
++#toolbar-rows {
++  margin: 1em 0;
++}
++
++#toolbar-rows .toolbar-row {
++  border: 1px solid gray;
++  padding: 0.2em 0.2em 0.2em 20px;
++  min-height: 2em;
++  position: relative;
++  margin-bottom: 0.5em;
++}
++
++#toolbar-rows .single-group .toolbar-group {
++  border: 0;
++  margin: 0;
++  padding: 0;
++  width: 100%;
++}
++
++#toolbar-rows .single-group .group-handler {
++  display: none;
++}
++
++#toolbar-rows .toolbar-group {
++  border: 1px dotted silver;
++  display: inline-block;
++  min-width: 10em;
++  min-height: 27px;
++  padding: 0 0.5em;
++  margin: 0 0.5em 0.1em 0;
++  position: relative;
++}
++
++#toolbar-actions {
++
++}
++
++.toolbar-row-template, .toolbar-group-template  {
++  display: none;
++}
++
++#toolbar-rows .row-handler {
++  position: absolute;
++  top: 0.2em;
++  left: 0.2em;
++}
++
++#toolbar-available-buttons {
++  border: 1px dashed silver;
++  padding: 0.5em;
++  margin-bottom: 1em;
++  position: relative;
++}
++
++#wysiwyg-toolbar-designer .add-group {
++  display: inline-block;
++  background: url(images/add.png);
++  width: 16px;
++  height: 16px;
++  right: 0.2em;
++  top: 0.2em;
++  text-decoration: none;
++  position: absolute;
++}
++
++#wysiwyg-toolbar-designer .add-toolbar-row {
++  display: inline-block;
++  background: url(images/add.png);
++  width: 16px;
++  height: 16px;
++  text-decoration: none;
++  outline: none;
++}
++
++#wysiwyg-toolbar-designer .handler {
++  background: url(images/draggable.png) no-repeat 0 4px;
++  width: 16px;
++  height: 16px;
++  display: inline-block;
++  text-decoration: none;
++}
++
++#wysiwyg-toolbar-designer .wysiwyg-button {
++  border: 1px solid silver;
++  display: inline-block;
++  margin: 0.2em 0.2em 0.2em 0;
++  padding: 0 0.5em;
++  height: 20px;
++  cursor: pointer;
++}
++
++#wysiwyg-toolbar-designer .ahah-progress, #wysiwyg-toolbar-designer div.warning {
++  /* Hidden by default. */
++  display: none;
++}
+diff --git wysiwyg.admin_toolbar.js wysiwyg.admin_toolbar.js
+new file mode 100644
+index 0000000..56ac836
+--- /dev/null
++++ wysiwyg.admin_toolbar.js
+@@ -0,0 +1,219 @@
++// $Id$
++
++Drupal.behaviors.wysiwygToolbarDesigner = function(context) {
++  var settings = Drupal.settings.wysiwyg_toolbar;
++  var workspace = $('#wysiwyg-toolbar-designer');
++  var designArea = $('#toolbar-rows');
++  var changeNotification = $('#wysiwyg-toolbar-designer div.warning');
++  var availableButtons = $('#toolbar-available-buttons');
++  var separator = $('.wysiwyg-button-default-Separator',availableButtons);
++
++  var createRow = function(noGroup) {
++    var row = $('.toolbar-row-template',workspace).clone().removeClass('toolbar-row-template');
++    row.addClass('toolbar-row').sortable({
++      handle: '.group-handler',
++      revert: true,
++      items: '.toolbar-group',
++      addClasses: false,
++      connectWith: '#toolbar-rows .toolbar-row',
++      stop: function(event,ui) {
++        changeNotification.fadeIn();
++      }
++    });
++
++    if (settings['toolbar groups']) {
++      row.find('.add-group').click(function() {
++        var group = createGroup();
++        row.append(group);
++        row.sortable('refresh');
++      });
++    }
++    else {
++      row.find('.add-group').hide();
++      row.addClass('single-group');
++    }
++
++    // add required group
++    if (!noGroup) {
++      var group = createGroup();
++      row.append(group);
++    }
++
++    return row;
++  };
++
++  var createGroup = function() {
++    var group = $('.toolbar-group-template').clone().removeClass('toolbar-group-template');
++    group.addClass('toolbar-group');
++
++    group.sortable({
++      revert: true,
++      items: '.wysiwyg-button',
++      connectWith: '#toolbar-rows .toolbar-group',
++      addClasses: false,
++      stop: function(event,ui) {
++        changeNotification.fadeIn();
++      }
++    });
++
++    group.droppable({
++      accept: '.template-button',
++      drop: function(event,ui) {
++        var button = ui.draggable.clone();
++        button.removeClass('template-button').addClass('toolbar-button');
++
++        // Disable this button in template area.
++        ui.draggable.hide();
++        separator.show();
++
++        $(this).append(button).sortable('refresh');
++        changeNotification.fadeIn();
++      }
++    });
++
++    return group;
++  }
++
++  var reset = function() {
++    $('.toolbar-row',designArea).remove();
++
++    // Enable all buttons and then disable it later.
++    $('.wysiwyg-button',availableButtons).show();
++
++
++    for (var i in settings.toolbar) {
++      var groups = settings.toolbar[i];
++      var row = createRow(true);
++
++      for (var j in groups) {
++        var group = createGroup();
++        var buttons = groups[j];
++
++        for (var k in buttons) {
++          var buttonClass = '.wysiwyg-button-' + buttons[k].plugin + '-' + buttons[k].button;
++          var template_button = $(buttonClass,$('#toolbar-available-buttons'));
++
++          if (template_button.length) {
++
++            button = template_button.clone().show();
++            button.removeClass('template-button').addClass('toolbar-button');
++
++            group.append(button);
++
++            // Disable button in template area.
++            template_button.hide();
++          }
++        }
++
++        row.append(group);
++      }
++
++      designArea.append(row);
++    }
++
++    // Make sure we always have at least one row.
++    if (!settings['toolbar rows']) {
++      if ($('.toolbar-row',designArea).length <= 0) {
++        var row = createRow();
++        designArea.append(row);
++      }
++    }
++
++    separator.show();
++    changeNotification.fadeOut();
++  }
++
++  $('.add-toolbar-row',workspace).click(function(){
++    // clone from toolbar template
++    var row = createRow();
++
++    // Append row to design area.
++    designArea.append(row).sortable('refresh');
++    changeNotification.fadeIn();
++  });
++
++  $('.wysiwyg-button',availableButtons).addClass('template-button').draggable({
++    handle: '.handler',
++    helper: 'clone',
++    revert: 'invalid',
++    addClasses: false
++  });
++
++  availableButtons.droppable({
++    accept: '.toolbar-button, .toolbar-group, .toolbar-row',
++    drop: function(event, ui) {
++      var item = ui.draggable;
++      var parent = item.parent();
++
++      // Guarantee there is at least 1 row and 1 group.
++      if (item.hasClass('toolbar-row') && parent.find('.toolbar-row').not('.ui-sortable-placeholder').length == 1) {
++        return;
++      } else if (item.hasClass('toolbar-group') && parent.find('.toolbar-group').not('.ui-sortable-placeholder').length == 1) {
++        return;
++      }
++
++      var buttons = $('.toolbar-button', item);
++      if (item.hasClass('toolbar-button')) {
++        buttons.add(item);
++      }
++      
++      // Remove each button and enable in template.
++      buttons.each(function(){
++        var button_id = /wysiwyg-button-([^-]+-[^\s]+)/.exec($(this).attr('class'));
++        $('.wysiwyg-button-' + button_id[1]).show();
++      });
++      
++      item.parent().sortable('refresh');
++      item.remove();
++
++      changeNotification.fadeIn();
++    }
++  });
++
++  $('#toolbar-rows').sortable({
++    items: '.toolbar-row',
++    handle: '.row-handler',
++    addClass: false,
++    stop: function(event, ui) {
++      changeNotification.fadeIn();
++    }
++  });
++
++  /* Design actions buttons. */
++  $('#reset-design').click(function() {
++    if (!changeNotification.is(':hidden') && confirm(Drupal.t('Do you want to reset the changes ?')))
++      reset();
++  });
++
++
++  $('#wysiwyg-profile-form').submit(function() {
++    // Prepare toolbar data to submit.
++    var toolbar = "";
++
++    designArea.find('.toolbar-row').each(function(key,rowDom){
++      var row = "";
++
++      $('.toolbar-group',rowDom).each(function(key,groupDom){
++        var group = "";
++
++        $('.wysiwyg-button',groupDom).each(function(key,button){
++          var cls = /wysiwyg-button-([^-]+)-([^\s]+)/.exec($(button).attr('class'));
++          group += cls[1] + "." + cls[2] + ",";
++        })
++
++        row += group + "|";
++      });
++
++      toolbar += row + "\n";
++    });
++    
++    // Assign to hidden field.
++    $('#edit-toolbar').val(toolbar);
++  });
++
++  reset();
++
++  if (!settings['toolbar rows']) {
++    $('.add-toolbar-row').hide();
++  }
++};
+diff --git wysiwyg.info wysiwyg.info
+index 6e8ec7d..8549daa 100644
+--- wysiwyg.info
++++ wysiwyg.info
+@@ -5,6 +5,9 @@ package = User interface
+ core = 6.x
+ 
+ ; Information added by drupal.org packaging script on 2010-04-08
++dependencies[] = jquery_ui
++dependencies[] = jquery_update
++
+ version = "6.x-2.x-dev"
+ core = "6.x"
+ project = "wysiwyg"
+diff --git wysiwyg.module wysiwyg.module
+index 660936b..fa1ca5b 100644
+--- wysiwyg.module
++++ wysiwyg.module
+@@ -67,6 +67,10 @@ function wysiwyg_theme() {
+     'wysiwyg_admin_button_table' => array(
+       'arguments' => array('form' => NULL),
+     ),
++    'wysiwyg_admin_toolbar_designer' => array(
++      'arguments' => array('form' => NULL),
++      'template' => 'wysiwyg-toolbar-designer',
++    ),
+     'wysiwyg_dialog_page' => array(
+       'arguments' => array('content' => NULL, 'show_messages' => TRUE),
+       'file' => 'wysiwyg.dialog.inc',
+@@ -414,16 +418,22 @@ function wysiwyg_add_plugin_settings($profile) {
+   if (isset($editor['plugin settings callback'])) {
+     // @todo Require PHP 5.1 in 3.x and use array_intersect_key().
+     $profile_plugins_native = array();
+-    foreach ($plugins[$editor['name']] as $plugin => $meta) {
+-      // Skip Drupal plugins (handled below).
+-      if ($plugin === $proxy) {
+-        continue;
+-      }
+-      // Only keep native plugins that are enabled in this profile.
+-      if (isset($profile->settings['buttons'][$plugin])) {
+-        $profile_plugins_native[$plugin] = $meta;
++
++    foreach ((array)$profile->settings['toolbar'] as $row) {
++      foreach ($row as $group) {
++        foreach ($group as $button) {
++          $plugin = $button['plugin'];
++
++          // Skip Drupal plugins (handled below).
++          if ($plugin === $proxy) {
++            continue;
++          }
++
++          $profile_plugins_native[$plugin] = $plugins[$plugin];
++        }
+       }
+     }
++
+     // Invoke the editor's plugin settings callback, so it can populate the
+     // settings for native external plugins with required values.
+     $settings_native = call_user_func($editor['plugin settings callback'], $editor, $profile, $profile_plugins_native);
+@@ -433,26 +443,39 @@ function wysiwyg_add_plugin_settings($profile) {
+ 
+   // Process Drupal plugins.
+   if ($proxy && isset($editor['proxy plugin settings callback'])) {
++    $drupal_plugins = wysiwyg_get_all_plugins();
++
+     $profile_plugins_drupal = array();
+-    foreach (wysiwyg_get_all_plugins() as $plugin => $meta) {
+-      if (isset($profile->settings['buttons'][$proxy][$plugin])) {
+-        // JavaScript and plugin-specific settings for Drupal plugins must be
+-        // loaded and processed only once. Plugin information is cached
+-        // statically to pass it to the editor's proxy plugin settings callback.
+-        if (!isset($processed_plugins[$proxy][$plugin])) {
+-          $profile_plugins_drupal[$plugin] = $processed_plugins[$proxy][$plugin] = $meta;
+-          // Load the Drupal plugin's JavaScript.
+-          drupal_add_js($meta['js path'] . '/' . $meta['js file']);
+-          // Add plugin-specific settings.
+-          if (isset($meta['settings'])) {
+-            drupal_add_js(array('wysiwyg' => array('plugins' => array('drupal' => array($plugin => $meta['settings'])))), 'setting');
++
++    foreach ((array)$profile->settings['toolbar'] as $row) {
++      foreach ($row as $group) {
++        foreach ($group as $button) {
++          $plugin = $button['plugin'];
++          $button_id = $button['button'];
++
++          if ($plugin == $proxy && isset($drupal_plugins[$button_id])) {
++            $meta = $drupal_plugins[$button_id];
++
++            // JavaScript and plugin-specific settings for Drupal plugins must be
++            // loaded and processed only once. Plugin information is cached
++            // statically to pass it to the editor's proxy plugin settings callback.
++            if (!isset($processed_plugins[$proxy][$button_id])) {
++              $profile_plugins_drupal[$button_id] = $processed_plugins[$proxy][$button_id] = $meta;
++              // Load the Drupal plugin's JavaScript.
++              drupal_add_js($meta['js path'] . '/' . $meta['js file']);
++              // Add plugin-specific settings.
++              if (isset($meta['settings'])) {
++                drupal_add_js(array('wysiwyg' => array('plugins' => array('drupal' => array($button_id => $meta['settings'])))), 'setting');
++              }
++            }
++            else {
++              $profile_plugins_drupal[$button_id] = $processed_plugins[$proxy][$button_id];
++            }
+           }
+         }
+-        else {
+-          $profile_plugins_drupal[$plugin] = $processed_plugins[$proxy][$plugin];
+-        }
+       }
+     }
++
+     // Invoke the editor's proxy plugin settings callback, so it can populate
+     // the settings for Drupal plugins with custom, required values.
+     $settings_drupal = call_user_func($editor['proxy plugin settings callback'], $editor, $profile, $profile_plugins_drupal);
+@@ -545,6 +568,7 @@ function wysiwyg_get_editor_config($profile, $theme) {
+     $context = array('editor' => $editor, 'profile' => $profile, 'theme' => $theme);
+     drupal_alter('wysiwyg_editor_settings', $settings, $context);
+   }
++
+   return $settings;
+ }
+ 

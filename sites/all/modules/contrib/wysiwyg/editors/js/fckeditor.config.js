@@ -17,28 +17,7 @@ var pluginSettings = Drupal.settings.wysiwyg.plugins[wysiwygFormat];
  * Apply format-specific settings.
  */
 for (var setting in wysiwygSettings) {
-  if (setting == 'buttons') {
-    // Apply custom Wysiwyg toolbar for this format.
-    // FCKConfig.ToolbarSets['Wysiwyg'] = wysiwygSettings.buttons;
-
-    // Temporarily stack buttons into multiple button groups and remove
-    // separators until #277954 is solved.
-    FCKConfig.ToolbarSets['Wysiwyg'] = [];
-    for (var i = 0; i < wysiwygSettings.buttons[0].length; i++) {
-      FCKConfig.ToolbarSets['Wysiwyg'].push([wysiwygSettings.buttons[0][i]]);
-    }
-    FCKTools.AppendStyleSheet(document, '#xToolbar .TB_Start { display:none; }');
-    // Set valid height of select element in silver and office2003 skins.
-    if (FCKConfig.SkinPath.match(/\/office2003\/$/)) {
-      FCKTools.AppendStyleSheet(document, '#xToolbar .SC_FieldCaption { height: 24px; } #xToolbar .TB_End { display: none; }');
-    }
-    else if (FCKConfig.SkinPath.match(/\/silver\/$/)) {
-      FCKTools.AppendStyleSheet(document, '#xToolbar .SC_FieldCaption { height: 27px; }');
-    }
-  }
-  else {
-    FCKConfig[setting] = wysiwygSettings[setting];
-  }
+  FCKConfig[setting] = wysiwygSettings[setting];
 }
 
 /**

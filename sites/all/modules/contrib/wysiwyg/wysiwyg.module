@@ -67,6 +67,10 @@ function wysiwyg_theme() {
     'wysiwyg_admin_button_table' => array(
       'arguments' => array('form' => NULL),
     ),
+    'wysiwyg_admin_toolbar_designer' => array(
+      'arguments' => array('form' => NULL),
+      'template' => 'wysiwyg-toolbar-designer',
+    ),
     'wysiwyg_dialog_page' => array(
       'arguments' => array('content' => NULL, 'show_messages' => TRUE),
       'file' => 'wysiwyg.dialog.inc',
@@ -414,16 +418,22 @@ function wysiwyg_add_plugin_settings($profile) {
   if (isset($editor['plugin settings callback'])) {
     // @todo Require PHP 5.1 in 3.x and use array_intersect_key().
     $profile_plugins_native = array();
-    foreach ($plugins[$editor['name']] as $plugin => $meta) {
-      // Skip Drupal plugins (handled below).
-      if ($plugin === $proxy) {
-        continue;
-      }
-      // Only keep native plugins that are enabled in this profile.
-      if (isset($profile->settings['buttons'][$plugin])) {
-        $profile_plugins_native[$plugin] = $meta;
+
+    foreach ((array)$profile->settings['toolbar'] as $row) {
+      foreach ($row as $group) {
+        foreach ($group as $button) {
+          $plugin = $button['plugin'];
+
+          // Skip Drupal plugins (handled below).
+          if ($plugin === $proxy) {
+            continue;
+          }
+
+          $profile_plugins_native[$plugin] = $plugins[$plugin];
+        }
       }
     }
+
     // Invoke the editor's plugin settings callback, so it can populate the
     // settings for native external plugins with required values.
     $settings_native = call_user_func($editor['plugin settings callback'], $editor, $profile, $profile_plugins_native);
@@ -433,26 +443,39 @@ function wysiwyg_add_plugin_settings($profile) {
 
   // Process Drupal plugins.
   if ($proxy && isset($editor['proxy plugin settings callback'])) {
+    $drupal_plugins = wysiwyg_get_all_plugins();
+
     $profile_plugins_drupal = array();
-    foreach (wysiwyg_get_all_plugins() as $plugin => $meta) {
-      if (isset($profile->settings['buttons'][$proxy][$plugin])) {
-        // JavaScript and plugin-specific settings for Drupal plugins must be
-        // loaded and processed only once. Plugin information is cached
-        // statically to pass it to the editor's proxy plugin settings callback.
-        if (!isset($processed_plugins[$proxy][$plugin])) {
-          $profile_plugins_drupal[$plugin] = $processed_plugins[$proxy][$plugin] = $meta;
-          // Load the Drupal plugin's JavaScript.
-          drupal_add_js($meta['js path'] . '/' . $meta['js file']);
-          // Add plugin-specific settings.
-          if (isset($meta['settings'])) {
-            drupal_add_js(array('wysiwyg' => array('plugins' => array('drupal' => array($plugin => $meta['settings'])))), 'setting');
+
+    foreach ((array)$profile->settings['toolbar'] as $row) {
+      foreach ($row as $group) {
+        foreach ($group as $button) {
+          $plugin = $button['plugin'];
+          $button_id = $button['button'];
+
+          if ($plugin == $proxy && isset($drupal_plugins[$button_id])) {
+            $meta = $drupal_plugins[$button_id];
+
+            // JavaScript and plugin-specific settings for Drupal plugins must be
+            // loaded and processed only once. Plugin information is cached
+            // statically to pass it to the editor's proxy plugin settings callback.
+            if (!isset($processed_plugins[$proxy][$button_id])) {
+              $profile_plugins_drupal[$button_id] = $processed_plugins[$proxy][$button_id] = $meta;
+              // Load the Drupal plugin's JavaScript.
+              drupal_add_js($meta['js path'] . '/' . $meta['js file']);
+              // Add plugin-specific settings.
+              if (isset($meta['settings'])) {
+                drupal_add_js(array('wysiwyg' => array('plugins' => array('drupal' => array($button_id => $meta['settings'])))), 'setting');
+              }
+            }
+            else {
+              $profile_plugins_drupal[$button_id] = $processed_plugins[$proxy][$button_id];
+            }
           }
-        }
-        else {
-          $profile_plugins_drupal[$plugin] = $processed_plugins[$proxy][$plugin];
         }
       }
     }
+
     // Invoke the editor's proxy plugin settings callback, so it can populate
     // the settings for Drupal plugins with custom, required values.
     $settings_drupal = call_user_func($editor['proxy plugin settings callback'], $editor, $profile, $profile_plugins_drupal);
@@ -545,6 +568,7 @@ function wysiwyg_get_editor_config($profile, $theme) {
     $context = array('editor' => $editor, 'profile' => $profile, 'theme' => $theme);
     drupal_alter('wysiwyg_editor_settings', $settings, $context);
   }
+
   return $settings;
 }
 

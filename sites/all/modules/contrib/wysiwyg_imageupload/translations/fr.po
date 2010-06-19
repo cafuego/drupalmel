@@ -1,0 +1,139 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WYSYIWG Image upload\n"
+"POT-Creation-Date: 2010-01-21 21:25+0100\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Jean-Pierre <jpgjpg@bluewin.ch>\n"
+"Language-Team: Eugen Mayer <mayer@impressive-media.de>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: plurales=(n!=1);\n"
+"X-Poedit-Language: German\n"
+"X-Poedit-Country: GERMANY\n"
+
+#: wysiwyg_imgupload.admin.inc:8
+msgid "Image style"
+msgstr "Présentation"
+
+#: wysiwyg_imgupload.admin.inc:9
+msgid "Define which CSS styles the user can chose when adding an image. Please do not define floating or size in that CSS classes, as this is handled seperately. You can give the style a descriptive name to let it handle more easily. The syntax is \"Descriptive Name=imgupl_style_XYC,Other Descriptive name=imgupl_style_ZXC..\" while imgupl_style_* is a css class"
+msgstr "Définissez le choix de l'utilisateur de possibilités de présentation. Veuillez éviter toute définition de floating ou de taille dans les classes CSS, ceci sera traité séparément. Vous pouvez attribuer au style un nom descriptif afin de le traiter plus facilement. La sytaxe est \"Descriptive Name=imgupl_style_XYC,Other Descriptive name=imgupl_style_ZXC..\" en tenant compte que imgupl_style_* est une classe CSS."
+
+#: wysiwyg_imageupload.module:96;100;119;185
+msgid "Upload image"
+msgstr "Télécharger la photo"
+
+#: wysiwyg_imageupload.module:114
+msgid "Choose an image"
+msgstr "Choisissez une photo"
+
+#: wysiwyg_imageupload.module:124
+msgid "Please wait..."
+msgstr "Veullez attendre ..."
+
+#: wysiwyg_imageupload.module:177
+msgid "Select a file to upload first"
+msgstr "Choisissez d'abord une photo devant être télécharger"
+
+#: wysiwyg_imageupload.module:201
+msgid "Update image"
+msgstr "Actualiser la photo"
+
+#: wysiwyg_imageupload.module:229
+msgid "Upload picture"
+msgstr "Télécharger la photo"
+
+#: wysiwyg_imageupload.module:240
+msgid "Title"
+msgstr "Titre"
+
+#: wysiwyg_imageupload.module:246
+msgid "Text floating"
+msgstr "Placement du texte"
+
+#: wysiwyg_imageupload.module:248
+msgid "Below image (none)"
+msgstr "Sous la photo (ou sans texte)"
+
+#: wysiwyg_imageupload.module:249
+msgid "Text right beside image"
+msgstr "Texte coulant à droite de la photo"
+
+#: wysiwyg_imageupload.module:250
+msgid "Text left beside image"
+msgstr "Texte coulant à gauche de la photo"
+
+#: wysiwyg_imageupload.module:264
+msgid "Size"
+msgstr "Taille"
+
+#: wysiwyg_imageupload.module:273
+msgid "None"
+msgstr "aucun/e"
+
+#: wysiwyg_imageupload.module:276
+msgid "Style"
+msgstr "Présentation"
+
+#: wysiwyg_imageupload.module:321
+msgid "wysiwyg_imageupload"
+msgstr ""
+
+#: wysiwyg_imageupload.module:321
+msgid "Could not set permissons on destination file: %file"
+msgstr ""
+
+#: wysiwyg_imageupload.module:41
+#: wysiwyg_imageupload.info:0
+msgid "WYSIWYG Image upload"
+msgstr "WYSIWYG télécharger une photo"
+
+#: wysiwyg_imageupload.module:42
+msgid "Configuration options for the WYSIWYG Image upload module"
+msgstr "Options de configuration du module de téléchargement de photo WYSIWYG"
+
+#: wysiwyg_imageupload.info:0
+msgid "Image upload dialog for the most WYSIWYG Editors"
+msgstr "Dialogue de téléchargement de photo pour la plupart des éditeurs WYSIWYG"
+
+#: wysiwyg_imageupload.info:0
+#: modules/jquery_ui_dialog/jquery_ui_dialog.info:0
+msgid "WYSIWYG"
+msgstr "WYSIWYG"
+
+#: modules/jquery_ui_dialog/jquery_ui_dialog.info:0
+msgid "JQuery UI Dialog API"
+msgstr "JQuery UI Dialog API"
+
+#: modules/jquery_ui_dialog/jquery_ui_dialog.info:0
+msgid "A slim API to support jquery ui dialogs in Drupal. Just provides an direct interface to the jquery-ui-dialog plugin"
+msgstr "A slim API to support jquery ui dialogs in Drupal. Just provides an direct interface to the jquery-ui-dialog plugin"
+
+#: modules/jquery_ui_dialog/js/parent.js:0
+msgid "Loading..."
+msgstr "en train de télécharger..."
+
+#: plugins/imgupload.inc:5
+msgid "Image uploading"
+msgstr "Télécharger une photo"
+
+#: plugins/imgupload.inc:8
+msgid "Insert or update an embedded image"
+msgstr "Insérez une photo ou actualisez celle-ci"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Insert"
+msgstr "Insérer"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Please select an image to upload first"
+msgstr "Veuillez d'abord choisir une photo que vous voulez télécharger"
+
+#: plugins/imgupload/imgupload.js:0;0
+msgid "Cancel"
+msgstr "Annuler"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Update"
+msgstr "Mise-à-jour"

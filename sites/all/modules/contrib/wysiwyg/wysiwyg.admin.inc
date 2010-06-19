@@ -7,9 +7,9 @@
  */
 
 /**
- * Form builder for Wysiwyg profile form.
+ * Prepare default properties for profile.
  */
-function wysiwyg_profile_form($form_state, $profile) {
+function wysiwyg_profile_default($profile) {
   // Merge in defaults.
   $profile = (array) $profile;
   $profile += array(
@@ -46,9 +46,20 @@ function wysiwyg_profile_form($form_state, $profile) {
   );
   $profile = (object) $profile;
 
+  return $profile;
+}
+
+/**
+ * Form builder for Wysiwyg profile form.
+ */
+function wysiwyg_profile_form($form_state, $profile) {
+  $profile = wysiwyg_profile_default($profile);
+
   $formats = filter_formats();
   $editor = wysiwyg_get_editor($profile->editor);
   drupal_set_title(t('%editor profile for %format', array('%editor' => $editor['title'], '%format' => $formats[$profile->format]->name)));
+
+  $form_state['storage']['profile'] = $profile;
 
   $form['format'] = array('#type' => 'value', '#value' => $profile->format);
   $form['input_format'] = array('#type' => 'value', '#value' => $formats[$profile->format]->name);
@@ -98,49 +109,89 @@ function wysiwyg_profile_form($form_state, $profile) {
     '#description' => t('The language to use for the editor interface. Language codes are based on the <a href="http://www.loc.gov/standards/iso639-2/englangn.html">ISO-639-2</a> format.'),
   );
 
-  $form['buttons'] = array(
+  $form['extensions'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Buttons and plugins'),
+    '#title' => t('Extensions'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#tree' => TRUE,
     '#theme' => 'wysiwyg_admin_button_table',
   );
 
+  // Get all available buttons.
   $plugins = wysiwyg_get_plugins($profile->editor);
-  // Generate the button list.
+  $buttons = array();
+
+  // Generate the extensions list and button array.
   foreach ($plugins as $name => $meta) {
-    if (isset($meta['buttons']) && is_array($meta['buttons'])) {
-      foreach ($meta['buttons'] as $button => $title) {
-        $icon = '';
-        if (!empty($meta['path'])) {
-          // @todo Button icon locations are different in editors, editor versions,
-          //   and contrib/custom plugins (like Image Assist, f.e.).
-          $img_src = $meta['path'] . "/images/$name.gif";
-          // Handle plugins that have more than one button.
-          if (!file_exists($img_src)) {
-            $img_src = $meta['path'] . "/images/$button.gif";
-          }
-          $icon = file_exists($img_src) ? '<img src="' . base_path() . $img_src . '" title="' . $button . '" style="border: 1px solid grey; vertical-align: middle;" />' : '';
-        }
-        $title = (isset($meta['url']) ? l($title, $meta['url'], array('target' => '_blank')) : $title);
-        $title = (!empty($icon) ? $icon . ' ' . $title : $title);
-        $form['buttons'][$name][$button] = array(
-          '#type' => 'checkbox',
-          '#title' => $title,
-          '#default_value' => !empty($profile->settings['buttons'][$name][$button]) ? $profile->settings['buttons'][$name][$button] : FALSE,
-        );
-      }
-    }
-    else if (isset($meta['extensions']) && is_array($meta['extensions'])) {
+    if (isset($meta['extensions']) && is_array($meta['extensions'])) {
       foreach ($meta['extensions'] as $extension => $title) {
-        $form['buttons'][$name][$extension] = array(
+        $form['extensions'][$name][$extension] = array(
           '#type' => 'checkbox',
           '#title' => isset($meta['url']) ? l($title, $meta['url'], array('target' => '_blank')) : $title,
-          '#default_value' => !empty($profile->settings['buttons'][$name][$extension]) ? $profile->settings['buttons'][$name][$extension] : FALSE,
+          '#default_value' => !empty($profile->settings['extensions'][$name][$extension]) ? $profile->settings['extensions'][$name][$extension] : FALSE,
         );
       }
     }
+
+    if (isset($meta['buttons']) && is_array($meta['buttons'])) {
+      foreach ($meta['buttons'] as $button => $title) {
+        $buttons[] = array(
+          'plugin' => $name,
+          'button' => $button,
+          'title' => $title,
+        );
+      }
+    }
+  }
+
+  // Get toolbar support array.
+  if (count($buttons)) {
+    $toolbar_support = array(
+      'toolbar separator' => !empty($editor['toolbar separator']),
+      'toolbar groups' => !empty($editor['toolbar groups']),
+      'toolbar rows' => !empty($editor['toolbar rows']),
+    );
+
+    // Separator.
+    if ($toolbar_support['toolbar separator']) {
+      array_unshift($buttons, array(
+        'plugin' => 'default',
+        'button' => 'separator',
+        'title' => t('Separator'),
+      ));
+    }
+
+    $toolbar = (array)$profile->settings['toolbar'];
+
+    $toolbar_support = array_merge($toolbar_support, array(
+      'callbackUrl' => url('admin/settings/wysiwyg/profile/' . $profile->format . '/toolbar/save'),
+      'toolbar' => $toolbar,
+    ));
+
+    // Add necessary javascripts and stylesheets.
+    drupal_add_js(array('wysiwyg_toolbar' => $toolbar_support), 'setting');
+    jquery_ui_add(array('ui.draggable', 'ui.droppable', 'ui.sortable'));
+    drupal_add_js(drupal_get_path('module', 'wysiwyg') . '/wysiwyg.admin_toolbar.js');
+    drupal_add_css(drupal_get_path('module', 'wysiwyg') . '/wysiwyg.admin_toolbar.css');
+
+    $form['toolbar_designer'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Buttons'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#theme' => 'wysiwyg_admin_toolbar_designer',
+    );
+
+    $form['toolbar_designer']['buttons'] = array(
+      '#type' => 'value',
+      '#value' => $buttons,
+    );
+
+    $form['toolbar_designer']['toolbar'] = array(
+      '#type' => 'hidden',
+      '#default_value' => '',
+    );
   }
 
   $form['appearance'] = array(
@@ -296,31 +347,56 @@ function wysiwyg_profile_form($form_state, $profile) {
  * @see wysiwyg_profile_form()
  */
 function wysiwyg_profile_form_submit($form, &$form_state) {
+  $profile = $form_state['storage']['profile'];
   $values = $form_state['values'];
-  if (isset($values['buttons'])) {
+  if (isset($values['extensions'])) {
     // Store only enabled buttons for each plugin.
-    foreach ($values['buttons'] as $plugin => $buttons) {
-      $values['buttons'][$plugin] = array_filter($values['buttons'][$plugin]);
+    foreach ($values['extensions'] as $plugin => $buttons) {
+      $values['extensions'][$plugin] = array_filter($values['extensions'][$plugin]);
     }
     // Store only enabled plugins.
-    $values['buttons'] = array_filter($values['buttons']);
+    $values['extensions'] = array_filter($values['extensions']);
   }
+
+  $values['extensions'] = (array)$values['extensions'];
+
+  // Restore toolbar array
+  $raw_toolbar = explode("\n", trim($values['toolbar']));
+  $toolbar = array();
+
+  foreach ($raw_toolbar as $raw_row) {
+    $row = array();
+    $raw_groups = explode('|', rtrim($raw_row, '|'));
+    foreach ($raw_groups as $raw_group) {
+      $buttons = explode(',', $raw_group);
+      $group = array();
+      foreach ($buttons as $button) {
+        list($plugin, $name) = explode('.', $button, 2);
+
+        $group[] = array(
+          'button' => $name,
+          'plugin' => $plugin,
+        );
+      }
+      $row[] = $group;
+    }
+    $toolbar[] = $row;
+  }
+
+  $values['toolbar'] = count($toolbar) ? $toolbar : NULL;
+
   // Remove input format name.
   $format = $values['format'];
   $input_format = $values['input_format'];
   $editor = $values['editor'];
-  unset($values['format'], $values['input_format'], $values['editor']);
 
-  // Remove FAPI values.
-  // @see system_settings_form_submit()
-  unset($values['submit'], $values['form_id'], $values['op'], $values['form_token'], $values['form_build_id']);
+  $values = array_merge($profile->settings, wysiwyg_profile_clean($values));
 
-  // Insert new profile data.
+  // Update profile settings.
   db_query("UPDATE {wysiwyg} SET settings = '%s' WHERE format = %d", serialize($values), $format);
 
   drupal_set_message(t('Wysiwyg profile for %format has been saved.', array('%format' => $input_format)));
-
-  $form_state['redirect'] = 'admin/settings/wysiwyg';
+  drupal_redirect_form($form, 'admin/settings/wysiwyg');
 }
 
 /**
@@ -351,7 +427,12 @@ function theme_wysiwyg_admin_button_table($form) {
     $rows[] = $row;
   }
 
-  $output = theme('table', array(), $rows, array('width' => '100%'));
+  if (count($rows)) {
+    $output = theme('table', array(), $rows, array('width' => '100%'));
+  }
+  else {
+    $output = '';
+  }
 
   return $output;
 }
@@ -529,3 +610,15 @@ function wysiwyg_profile_delete($format) {
   db_query("DELETE FROM {wysiwyg} WHERE format = %d", $format);
 }
 
+/**
+ * Clean submitted setting values
+ */
+function wysiwyg_profile_clean($values) {
+  unset($values['format'], $values['input_format'], $values['editor']);
+
+  // Remove FAPI values.
+  // @see system_settings_form_submit()
+  unset($values['submit'], $values['form_id'], $values['op'], $values['form_token'], $values['form_build_id']);
+
+  return $values;
+}

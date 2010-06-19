@@ -1,0 +1,150 @@
+# $Id: ru.po,v 1.1.2.21 2010/03/19 11:20:43 eugenmayer Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright 2010 Phil Krylov <phil.krylov@gmail.com>
+# Generated from files:
+#  wysiwyg_imgupload.admin.inc: n/a
+#  wysiwyg_imageupload.module: n/a
+#  wysiwyg_imageupload.info: n/a
+#  modules/jquery_ui_dialog/jquery_ui_dialog.info: n/a
+#  parent.js,v 1.1.2.22 2010/01/02 06:07:14 markuspetrux
+#  plugins/imgupload.inc: n/a
+#  img_assist.js,v 1.5 2009/06/13 01:17:21 sun
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: WYSYIWG Image upload\n"
+"POT-Creation-Date: 2010-01-21 21:25+0100\n"
+"PO-Revision-Date: 2010-01-24 22:15+0300\n"
+"Last-Translator: Phil Krylov <phil.krylov@gmail.com>\n"
+"Language-Team: Phil Krylov <phil.krylov@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: wysiwyg_imgupload.admin.inc:8
+msgid "Image style"
+msgstr "Стиль изображения"
+
+#: wysiwyg_imgupload.admin.inc:9
+msgid "Define which CSS styles the user can chose when adding an image. Please do not define floating or size in that CSS classes, as this is handled seperately. You can give the style a descriptive name to let it handle more easily. The syntax is \"Descriptive Name=imgupl_style_XYC,Other Descriptive name=imgupl_style_ZXC..\" while imgupl_style_* is a css class"
+msgstr "Задайте стили CSS, которые может выбрать пользователь при добавлении изображения. Не определяйте в этих классах CSS обтекание и размер, так как эти параметры обрабьатываются отдельно. При стиле можно указать человеческое название для удобства пользователей, Синтаксис: \"Человеческое название=imgupl_style_XYC,Еще человеческое название=imgupl_style_ZXC..\", где imgupl_style_* - класс CSS"
+
+#: wysiwyg_imageupload.module:96;100;119;185
+msgid "Upload image"
+msgstr "Загрузить изображение"
+
+#: wysiwyg_imageupload.module:114
+msgid "Choose an image"
+msgstr "Выберите изображение"
+
+#: wysiwyg_imageupload.module:124
+msgid "Please wait..."
+msgstr "Подождите, пожалуйста..."
+
+#: wysiwyg_imageupload.module:177
+msgid "Select a file to upload first"
+msgstr "Сначала выберите файл для загрузки"
+
+#: wysiwyg_imageupload.module:201
+msgid "Update image"
+msgstr "Обновить изображение"
+
+#: wysiwyg_imageupload.module:229
+msgid "Upload picture"
+msgstr "Загрузить рисунок"
+
+#: wysiwyg_imageupload.module:240
+msgid "Title"
+msgstr "Название"
+
+#: wysiwyg_imageupload.module:246
+msgid "Text floating"
+msgstr "Обтекание"
+
+#: wysiwyg_imageupload.module:248
+msgid "Below image (none)"
+msgstr "Под изображением (без обтекания)"
+
+#: wysiwyg_imageupload.module:249
+msgid "Text right beside image"
+msgstr "Текст справа от изображения"
+
+#: wysiwyg_imageupload.module:250
+msgid "Text left beside image"
+msgstr "Текст слева от изображения"
+
+#: wysiwyg_imageupload.module:264
+msgid "Size"
+msgstr "Размер"
+
+#: wysiwyg_imageupload.module:273
+msgid "None"
+msgstr "Нет"
+
+#: wysiwyg_imageupload.module:276
+msgid "Style"
+msgstr "Стиль"
+
+#: wysiwyg_imageupload.module:321
+msgid "wysiwyg_imageupload"
+msgstr ""
+
+#: wysiwyg_imageupload.module:321
+msgid "Could not set permissons on destination file: %file"
+msgstr "Не удалось задать разрешения на файл назначения: %file"
+
+#: wysiwyg_imageupload.module:41 wysiwyg_imageupload.info:0
+msgid "WYSIWYG Image upload"
+msgstr ""
+
+#: wysiwyg_imageupload.module:42
+msgid "Configuration options for the WYSIWYG Image upload module"
+msgstr "Настройки модуля WYSIWYG Image Upload"
+
+#: wysiwyg_imageupload.info:0
+msgid "Image upload dialog for the most WYSIWYG Editors"
+msgstr "Диалоговое окно загрузки изображений для большинства WYSIWYG-редакторов"
+
+#: wysiwyg_imageupload.info:0 modules/jquery_ui_dialog/jquery_ui_dialog.info:0
+msgid "WYSIWYG"
+msgstr ""
+
+#: modules/jquery_ui_dialog/jquery_ui_dialog.info:0
+msgid "JQuery UI Dialog API"
+msgstr ""
+
+#: modules/jquery_ui_dialog/jquery_ui_dialog.info:0
+msgid "A slim API to support jquery ui dialogs in Drupal. Just provides an direct interface to the jquery-ui-dialog plugin"
+msgstr ""
+
+#: modules/jquery_ui_dialog/js/parent.js:0
+msgid "Loading..."
+msgstr "Загрузка..."
+
+#: plugins/imgupload.inc:5
+msgid "Image uploading"
+msgstr "Загрузка изображения"
+
+#: plugins/imgupload.inc:8
+msgid "Insert or update an embedded image"
+msgstr "Вставка или обновление изображения в тексте"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Insert"
+msgstr "Вставить"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Please select an image to upload first"
+msgstr "Пожалуйста, выберите сначала изображение для загрузки"
+
+#: plugins/imgupload/imgupload.js:0;0
+msgid "Cancel"
+msgstr "Отмена"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Update"
+msgstr "Обновить"
+
