@@ -1,5 +1,5 @@
 <?php
-// $Id: fckeditor.inc,v 1.17.2.2 2010/01/23 00:51:32 sun Exp $
+// $Id: fckeditor.inc,v 1.17.2.3 2010/04/02 14:05:54 sun Exp $
 
 /**
  * @file
@@ -20,6 +20,9 @@ function wysiwyg_fckeditor_editor() {
         'files' => array('fckeditor.js'),
       ),
     ),
+    'toolbar groups' => TRUE,
+    'toolbar rows' => TRUE,
+    'toolbar separator' => TRUE,
     'version callback' => 'wysiwyg_fckeditor_version',
     'themes callback' => 'wysiwyg_fckeditor_themes',
     'settings callback' => 'wysiwyg_fckeditor_settings',
@@ -52,6 +55,9 @@ function wysiwyg_fckeditor_editor() {
  */
 function wysiwyg_fckeditor_version($editor) {
   $library = $editor['library path'] . '/fckeditor.js';
+  if (!file_exists($library)) {
+    return;
+  }
   $library = fopen($library, 'r');
   $max_lines = 100;
   while ($max_lines && $line = fgets($library, 60)) {
@@ -129,40 +135,66 @@ function wysiwyg_fckeditor_settings($editor, $config, $theme) {
     if ($config['css_setting'] == 'theme') {
       $settings['EditorAreaCSS'] = implode(',', wysiwyg_get_css());
     }
-    else if ($config['css_setting'] == 'self' && isset($config['css_path'])) {
+    elseif ($config['css_setting'] == 'self' && isset($config['css_path'])) {
       $settings['EditorAreaCSS'] = strtr($config['css_path'], array('%b' => base_path(), '%t' => path_to_theme()));
     }
   }
 
-  if (!empty($config['buttons'])) {
-    // Use our custom toolbar set.
-    $settings['ToolbarSet'] = 'Wysiwyg';
-    // Populate our custom toolbar set for fckeditor.config.js.
-    $settings['buttons'] = array();
-    $plugins = wysiwyg_get_plugins($editor['name']);
-    foreach ($config['buttons'] as $plugin => $buttons) {
-      foreach ($buttons as $button => $enabled) {
-        // Iterate separately over buttons and extensions properties.
-        foreach (array('buttons', 'extensions') as $type) {
-          // Skip unavailable plugins.
-          if (!isset($plugins[$plugin][$type][$button])) {
-            continue;
-          }
-          // Add buttons.
-          if ($type == 'buttons') {
-            $settings['buttons'][] = $button;
-          }
-          // Allow plugins to add or override global configuration settings.
-          if (!empty($plugins[$plugin]['options'])) {
-            $settings = array_merge($settings, $plugins[$plugin]['options']);
-          }
-        }
+  $plugins = wysiwyg_get_plugins($editor['name']);
+  $toolbar = array();
+
+  foreach ((array)$config['extensions'] as $plugin => $buttons) {
+    foreach ($buttons as $button => $enabled) {
+      if (!isset($plugins[$plugin]['extensions'][$button])) {
+        continue;
+      }
+
+      // Allow plugins to add or override global configuration settings.
+      if (!empty($plugins[$plugin]['options'])) {
+        $settings = array_merge($settings, $plugins[$plugin]['options']);
       }
     }
-    // For now, all buttons are placed into one row.
-    if (!empty($settings['buttons'])) {
-      $settings['buttons'] = array($settings['buttons']);
+  }
+
+  foreach ((array)$config['toolbar'] as $row) {
+    foreach ($row as $buttons) {
+      $group = array();
+
+      foreach ($buttons as $button_config) {
+        $plugin = $button_config['plugin'];
+        $button = $button_config['button'];
+
+        if ($button == 'separator') {
+          $group[] = '-';
+          continue;
+        }
+        if (!isset($plugins[$plugin]['buttons'][$button])) {
+          continue;
+        }
+
+        $group[] = $button;
+
+        // Allow plugins to add or override global configuration settings.
+        if (!empty($plugins[$plugin]['options'])) {
+          $settings = array_merge($settings, $plugins[$plugin]['options']);
+        }
+      }
+
+      $toolbar[] = $group;
     }
+
+    $toolbar[] = '/';
+  }
+
+  // Remove the last '/'.
+  if (end($toolbar) == '/') {
+    array_pop($toolbar);
+  }
+
+  if (!empty($toolbar)) {
+    // Use our custom toolbar set.
+    $settings['ToolbarSet'] = 'DrupalWysiwyg';
+    $settings['ToolbarSets']['DrupalWysiwyg'] = $toolbar;
   }
 
   return $settings;

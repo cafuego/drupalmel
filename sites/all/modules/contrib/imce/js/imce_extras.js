@@ -1,13 +1,10 @@
-// $Id: imce_extras.js,v 1.3.2.1 2010/05/15 13:32:44 ufku Exp $
+// $Id: imce_extras.js,v 1.2.2.5 2010/02/01 15:47:01 ufku Exp $
 //This pack implemets: keyboard shortcuts, file sorting, resize bars, and inline thumbnail preview.
-
-(function($) {
 
 //add onload hook. unshift to make sure it runs first after imce loads.
 imce.hooks.load.unshift(function () {
-  imce.NW = imce.el('navigation-wrapper');
-  imce.BW = imce.el('browse-wrapper');
-  imce.PW = imce.el('preview-wrapper');
+  imce.NW = imce.el('navigation-wrapper'), imce.BW = imce.el('browse-wrapper');
+  imce.LPW = imce.el('log-prv-wrapper'), imce.LW = imce.el('log-wrapper');
   //add scale calculator for resizing.
   $('#edit-width, #edit-height').focus(function () {
     var fid, r, w, isW, val;
@@ -17,10 +14,11 @@ imce.hooks.load.unshift(function () {
         this.value = Math.round(isW ? val/r : val*r);
     }
   });
+  //$(imce.tree[imce.conf.dir].a).focus();//focus on the active directory branch
 });
 
 /**************** SHORTCUTS ********************/
-var F = null;
+
 imce.initiateShortcuts = function () {
   $(imce.NW).attr('tabindex', '0').keydown(function (e) {
     if (F = imce.dirKeys['k'+ e.keyCode]) return F(e);
@@ -80,7 +78,7 @@ imce.fileKeys = {
   k65: function (e) {//ctrl+A to select all
     if (e.ctrlKey && imce.findex.length) {
       var fid = imce.findex[0].id;
-      imce.selected[fid] ? (imce.vars.lastfid = fid) : imce.fileClick(fid);//select first row
+      imce.selected[fid] ? (imce.vars.lastfid = fid) : imce.fileSelect(fid);//select first row
       imce.fileClick(imce.findex[imce.findex.length-1], false, true);//shift+click last row
       return false;
     }
@@ -160,11 +158,15 @@ imce.sortNumDsc = function(a, b) {return b-a};
 //set resizers for resizable areas and recall previous dimensions
 imce.initiateResizeBars = function () {
   imce.setResizer('navigation-resizer', 'X', 'navigation-wrapper', null, 1);
-  imce.setResizer('browse-resizer', 'Y', 'browse-wrapper', 'preview-wrapper', 50);
+  imce.setResizer('log-resizer', 'X', 'log-wrapper', null, 1);
+  imce.setResizer('browse-resizer', 'Y', 'browse-wrapper', 'log-prv-wrapper', 50, imce.resizeList);
+  imce.setResizer('content-resizer', 'Y', 'resizable-content', null, 150, imce.resizeRows);
   imce.recallDimensions();
   $(window).unload(function() {
-    imce.cookie('imcebwh', $(imce.BW).height());
-    imce.cookie('imcenww', Math.max($(imce.NW).width(), 1));
+    imce.cookie('ih1', $(imce.BW).height());
+    imce.cookie('ih2', $(imce.LPW).height());
+    imce.cookie('iw1', Math.max($(imce.NW).width(), 1));
+    imce.cookie('iw2', Math.max($(imce.LW).width(), 1));
   });
 };
 
@@ -188,42 +190,35 @@ imce.setResizer = function (resizer, axis, area1, area2, Min, callback) {
       callback && callback(start, end, Max);
     };
     $doc.mousemove(drag).mouseup(undrag);
-    return false;
   });
 };
 
-//get&set area dimensions of the last session from the cookie
-imce.recallDimensions = function() {
-  var $body = $(document.body);
-  if (!$body.is('.imce')) return;
-  //row heights
-  imce.recallHeights(imce.cookie('imcebwh') * 1);
-  $(window).resize(function(){imce.recallHeights()});
-  //navigation wrapper
-  var nwOldWidth = imce.cookie('imcenww') * 1;
-  nwOldWidth && $(imce.NW).width(Math.min(nwOldWidth, $body.width() - 10));
+//set height file-list area
+imce.resizeList = function(start, end, Max) {
+  var el = $(imce.FLW), h = el.height() + end - start;
+  el.height(h < 1 ? 1 : h);
 };
 
-//set row heights with respect to window height
-imce.recallHeights = function(bwFixedHeight) {
-  //window & body dimensions
-  var winHeight = $.browser.opera ? window.innerHeight : $(window).height();
-  var bodyHeight = $(document.body).outerHeight(true);
-  var diff = winHeight - bodyHeight;
-  var bwHeight = $(imce.BW).height(), pwHeight = $(imce.PW).height();
-  if (bwFixedHeight) {
-    //row heights
-    diff -= bwFixedHeight - bwHeight;
-    bwHeight = bwFixedHeight;
-    pwHeight += diff;
+//set heights of browse and log-prv areas.
+imce.resizeRows = function(start, end, Max) {
+  var el = $(imce.BW), h = el.height();
+  var diff = end - start, r = h / start, d = Math.round(diff * r), h1 = Math.max(h + d, 50);
+  el.height(h1);
+  $(imce.LPW).height(end - h1 - $(imce.el('browse-resizer')).height() - 1);
+  imce.resizeList(h, h1);
+};
+
+//get area dimensions of the last session from the cookie
+imce.recallDimensions = function() {
+  if (h1 = imce.cookie('ih1')*1) {
+    var h2 = imce.cookie('ih2')*1, w1 = imce.cookie('iw1')*1, w2 = imce.cookie('iw2')*1;
+    var el = $(imce.BW), h = el.height(), w = el.width();
+    $(imce.NW).width(Math.min(w1, w-5));
+    $(imce.LW).width(Math.min(w2, w-5));
+    el.height(h1);
+    imce.resizeList(h, h1);
+    $(imce.LPW).height(h2);
   }
-  else {
-    diff = parseInt(diff/2);
-    bwHeight += diff;
-    pwHeight += diff;
-  }
-  $(imce.BW).height(bwHeight);
-  $(imce.PW).height(pwHeight);
 };
 
 //cookie get & set
@@ -235,40 +230,22 @@ imce.cookie = function (name, value) {
 };
 
 //view thumbnails(smaller than tMaxW x tMaxH) inside the rows.
-//Large images can also be previewed by setting imce.vars.prvstyle to a valid image style(imagecache preset)
 imce.thumbRow = function (row) {
-  var w = row.cells[2].innerHTML * 1;
-  if (!w) return;
-  var h = row.cells[3].innerHTML*1;
-  if (imce.vars.tMaxW < w || imce.vars.tMaxH < h) {
-    if (!imce.vars.prvstyle) return;
-    var img = new Image();
-    img.src = imce.imagestyleURL(imce.getURL(row.id), imce.vars.prvstyle);
-    img.className = 'imagestyle imagestyle-' + imce.vars.prvstyle;
-  }
-  else {
-    var prvH = h, prvW = w;
-    if (imce.vars.prvW < w || imce.vars.prvH < h) {
-      if (h < w) {
-        prvW = imce.vars.prvW;
-        prvH = prvW*h/w;
-      }
-      else {
-        prvH = imce.vars.prvH;
-        prvW = prvH*w/h;
-      }
+  var h, w = row.cells[2].innerHTML*1;
+  if (!w || imce.vars.tMaxW < w || imce.vars.tMaxH < (h = row.cells[3].innerHTML*1)) return;
+  var prvH = h, prvW = w;
+  if (imce.vars.prvW < w || imce.vars.prvH < h) {
+    if (h < w) {
+      prvW = imce.vars.prvW;
+      prvH = prvW*h/w;
     }
-    var img = new Image(prvW, prvH);
-    img.src = imce.getURL(row.id);
+    else {
+      prvH = imce.vars.prvH;
+      prvW = prvH*w/h;
+    }
   }
+  var img = new Image(prvW, prvH);
+  img.src = imce.getURL(row.id);
   var cell = row.cells[0];
   cell.insertBefore(img, cell.firstChild);
 };
-
-//convert a file URL returned by imce.getURL() to an image style(imagecache preset) URL
-imce.imagestyleURL = function (url, stylename) {
-  var len = imce.conf.furl.length - 1;
-  return url.substr(0, len) + '/imagecache/' + stylename + url.substr(len);
-};
-
-})(jQuery);

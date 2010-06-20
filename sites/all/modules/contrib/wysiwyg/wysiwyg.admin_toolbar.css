@@ -1,0 +1,97 @@
+/* $Id$ */
+
+#toolbar-rows {
+  margin: 1em 0;
+}
+
+#toolbar-rows .toolbar-row {
+  border: 1px solid gray;
+  padding: 0.2em 0.2em 0.2em 20px;
+  min-height: 2em;
+  position: relative;
+  margin-bottom: 0.5em;
+}
+
+#toolbar-rows .single-group .toolbar-group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+#toolbar-rows .single-group .group-handler {
+  display: none;
+}
+
+#toolbar-rows .toolbar-group {
+  border: 1px dotted silver;
+  display: inline-block;
+  min-width: 10em;
+  min-height: 27px;
+  padding: 0 0.5em;
+  margin: 0 0.5em 0.1em 0;
+  position: relative;
+}
+
+#toolbar-actions {
+
+}
+
+.toolbar-row-template, .toolbar-group-template  {
+  display: none;
+}
+
+#toolbar-rows .row-handler {
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+}
+
+#toolbar-available-buttons {
+  border: 1px dashed silver;
+  padding: 0.5em;
+  margin-bottom: 1em;
+  position: relative;
+}
+
+#wysiwyg-toolbar-designer .add-group {
+  display: inline-block;
+  background: url(images/add.png);
+  width: 16px;
+  height: 16px;
+  right: 0.2em;
+  top: 0.2em;
+  text-decoration: none;
+  position: absolute;
+}
+
+#wysiwyg-toolbar-designer .add-toolbar-row {
+  display: inline-block;
+  background: url(images/add.png);
+  width: 16px;
+  height: 16px;
+  text-decoration: none;
+  outline: none;
+}
+
+#wysiwyg-toolbar-designer .handler {
+  background: url(images/draggable.png) no-repeat 0 4px;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  text-decoration: none;
+}
+
+#wysiwyg-toolbar-designer .wysiwyg-button {
+  border: 1px solid silver;
+  display: inline-block;
+  margin: 0.2em 0.2em 0.2em 0;
+  padding: 0 0.5em;
+  height: 20px;
+  cursor: pointer;
+}
+
+#wysiwyg-toolbar-designer .ahah-progress, #wysiwyg-toolbar-designer div.warning {
+  /* Hidden by default. */
+  display: none;
+}

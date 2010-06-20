@@ -1,10 +1,5 @@
 <?php
-// $Id: imce.admin.inc,v 1.1.2.2 2010/05/29 01:56:36 ufku Exp $
-
-/**
- * @file
- * Serves administration pages of IMCE.
- */
+// $Id: admin.inc,v 1.5.2.8 2010/05/29 02:06:32 ufku Exp $
 
 /**
  * Admin main page.
@@ -12,6 +7,9 @@
 function imce_admin() {
 
   $profiles = variable_get('imce_profiles', array());
+  if (empty($profiles)) {
+    imce_install_profiles();
+  }
 
   $header = array(t('Profile name'), array('data' => t('Operations'), 'colspan' => 2));
   $rows = array();
@@ -67,6 +65,12 @@ function imce_admin_form(&$form_state) {
     '#default_value' => variable_get('imce_settings_textarea', ''),
     '#maxlength' => NULL,
     '#description' => t('If you don\'t use any WYSIWYG editor, this feature will allow you to add your images or files as <strong>html code into any plain textarea</strong>. Enter <strong>comma separated textarea IDs</strong> under which you want to enable a link to IMCE. Hint: ID of Body fields in most node types is edit-body.'),
+  );
+  $form['common']['absurls'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Absolute URLs'),
+    '#default_value' => variable_get('imce_settings_absurls', 0),
+    '#description' => t('Check if you want IMCE to return absolute file URLs.'),
   );
   $form['common']['replace'] = array(
     '#type' => 'radios',
@@ -137,6 +141,7 @@ function imce_admin_submit($form, &$form_state) {
   }
   variable_set('imce_roles_profiles', $roles);
   variable_set('imce_settings_textarea', $form_state['values']['textarea']);
+  variable_set('imce_settings_absurls', $form_state['values']['absurls']);
   variable_set('imce_settings_replace', $form_state['values']['replace']);
   variable_set('imce_settings_thumb_method', $form_state['values']['thumb_method']);
   if (isset($form_state['values']['disable_private'])) {
@@ -151,7 +156,7 @@ function imce_admin_submit($form, &$form_state) {
 function imce_profile_operations($op = 'add', $pid = 0) {
   //delete
   if ($op == 'delete') {
-    drupal_set_title(t('Delete configuration profile'));
+    drupal_set_title('Delete profile');
     return drupal_get_form('imce_profile_delete_form', $pid);
   }
   //add-edit
@@ -200,7 +205,7 @@ function imce_profile_form(&$form_state, $pid = 0) {
   );
   $form['usertab'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Display file browser tab in user profile pages.'),
+    '#title' => t('Display file browser link as a tab in user profile pages.'),
     '#default_value' => $profile['usertab'],
   );
   $form['filesize'] = array(
@@ -266,6 +271,7 @@ function imce_profile_form(&$form_state, $pid = 0) {
   $form = array('profile' => $form);
   $form['pid'] = array('#type' => 'hidden', '#value' => $pid);
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save configuration'));
+  //$form['#action'] = url('admin/settings/imce/profile/'. $pid);
   $form['#submit'][] = 'imce_profile_submit';
   return $form;
 }
@@ -534,7 +540,7 @@ function imce_update_roles($pid) {
     if ($role['pid'] == $pid) {
       $roles[$rid]['pid'] = 0;
     }
-    elseif ($role['pid'] > $pid) {
+    else if ($role['pid'] > $pid) {
       $roles[$rid]['pid']--;
     }
   }
@@ -554,7 +560,7 @@ function imce_update_profiles($pid, $profile = NULL) {
   }
 
   //delete
-  elseif (isset($profiles[$pid]) && $pid > 1) {
+  else if (isset($profiles[$pid]) && $pid > 1) {
     unset($profiles[$pid]);
     for ($i = $pid+1; isset($profiles[$i]); $i++) {
       $profiles[$i-1] = $profiles[$i];
@@ -640,4 +646,4 @@ function imce_rolesort($r1, $r2) {
 }
 
 //Include core profile functions.
-module_load_include('inc', 'imce', 'inc/imce.core.profiles');
+include_once './'. drupal_get_path('module', 'imce') .'/inc/core_profiles.inc';

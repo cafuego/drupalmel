@@ -55,15 +55,7 @@ Drupal.wysiwyg.editor.attach.tinymce = function(context, params, settings) {
   ed.onEvent.add(function(ed, e) {
     Drupal.wysiwyg.activeId = ed.id;
   });
-  // Make toolbar buttons wrappable (required for IE).
-  ed.onPostRender.add(function (ed) {
-    var $toolbar = $('<div class="wysiwygToolbar"></div>');
-    $('#' + ed.editorContainer + ' table.mceToolbar > tbody > tr > td').each(function () {
-      $('<div></div>').addClass(this.className).append($(this).children()).appendTo($toolbar);
-    });
-    $('#' + ed.editorContainer + ' table.mceLayout td.mceToolbar').append($toolbar);
-    $('#' + ed.editorContainer + ' table.mceToolbar').remove();
-  });
+
   // Attach editor.
   ed.render();
 };

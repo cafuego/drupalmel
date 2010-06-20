@@ -1,10 +1,5 @@
 <?php
-// $Id: imce.module,v 1.24.2.6 2010/05/29 08:27:24 ufku Exp $
-
-/**
- * @file
- * Implements the necessary hooks for the file browser to work properly.
- */
+// $Id: imce.module,v 1.23.2.10 2010/05/29 02:06:32 ufku Exp $
 
 /**
  * Implementation of hook_menu().
@@ -14,10 +9,37 @@ function imce_menu() {
   $access = array('administer imce(execute PHP)');
   $items['imce'] = array(
     'title' => 'File browser',
-    'page callback' => 'imce',
+    'page callback' => 'imce_page',
     'access callback' => 'imce_access',
-    'file' => 'inc/imce.page.inc',
+    'file' => 'inc/page.inc',
     'type' => MENU_CALLBACK,
+  );
+  $items['admin/settings/imce'] = array(
+    'title' => 'IMCE',
+    'description' => 'Control how your image/file browser works.',
+    'page callback' => 'imce_admin',
+    'access arguments' => $access,
+    'file' => 'inc/admin.inc',
+  );
+  $items['admin/settings/imce/profiles'] = array(
+    'title' => 'Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/settings/imce/subdirectory'] = array(
+    'title' => 'Directory creation tool',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('imce_form_subdirectory'),
+    'access arguments' => $access,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+    'file' => 'inc/subdir.inc',
+  );
+  $items['admin/settings/imce/profile'] = array(
+    'title' => 'Add new profile',
+    'page callback' => 'imce_profile_operations',
+    'access arguments' => $access,
+    'type' => MENU_CALLBACK,
+    'file' => 'inc/admin.inc',
   );
   $items['user/%user/imce'] = array(
     'title' => 'File browser',
@@ -25,23 +47,9 @@ function imce_menu() {
     'page arguments' => array(1),
     'access callback' => 'imce_user_page_access',
     'access arguments' => array(1),
-    'file' => 'inc/imce.page.inc',
+    'file' => 'inc/page.inc',
     'type' => MENU_LOCAL_TASK,
     'weight' => 10,
-  );
-  $items['admin/settings/imce'] = array(
-    'title' => 'IMCE',
-    'description' => 'Control how your image/file browser works.',
-    'page callback' => 'imce_admin',
-    'access arguments' => $access,
-    'file' => 'inc/imce.admin.inc',
-  );
-  $items['admin/settings/imce/profile'] = array(
-    'title' => 'Add new profile',
-    'page callback' => 'imce_profile_operations',
-    'access arguments' => $access,
-    'type' => MENU_CALLBACK,
-    'file' => 'inc/imce.admin.inc',
   );
   return $items;
 }
@@ -61,12 +69,6 @@ function imce_theme() {
   $theme['imce_admin']['function'] = 'imce_admin_theme';
   $theme['imce_directories']['function'] = 'imce_directories_theme';
   $theme['imce_thumbnails']['function'] = 'imce_thumbnails_theme';
-  $theme['imce_root_text'] = array(
-    'arguments' => array('imce_ref' => NULL),
-  );
-  $theme['imce_user_page'] = array(
-    'arguments' => array('account' => NULL),
-  );
   $theme['imce_file_list'] = array(
     'template' => 'imce-file-list',
     'arguments' => array('imce_ref' => NULL),
@@ -101,26 +103,6 @@ function imce_file_download($file) {
       $type = 'application/x-download';
     }
     return array('Content-type: '. $type, 'Content-Length: '. filesize($path));
-  }
-}
-
-/**
- * Implementation of hook_file_delete().
- */
-function imce_file_delete($file) {
-  db_query('DELETE FROM {imce_files} WHERE fid = %d', $file->fid);
-}
-
-/**
- * Implementation of hook_file_references().
- */
-function imce_file_references($file) {
-  //do not report reference count on internal file deletion
-  if (isset($file->imce_noref) && $file->imce_noref) {
-    return;
-  }
-  if (db_fetch_array(db_query('SELECT 1 FROM {imce_files} WHERE fid = %d', $file->fid))) {
-    return array('imce' => 1);
   }
 }
 
@@ -171,7 +153,7 @@ function imce_user_profile($user) {
 }
 
 /**
- * Checks if the user has access to imce.
+ * Check if the user has access to imce.
  */
 function imce_access($user = FALSE) {
   if ($user === FALSE) {
@@ -193,14 +175,14 @@ function imce_access($user = FALSE) {
 }
 
 /**
- * Checks access to user/{$account->uid}/imce for the $user.
+ * Defines access to user/{$account->uid}/imce for the $user.
  */
 function imce_user_page_access($account, $user = FALSE) {
   if ($user === FALSE) {
     global $user;
   }
 
-  return $account->uid == $user->uid && ($profile = imce_user_profile($user)) && $profile['usertab'];
+  return $user->uid == 1 || ($account->uid == $user->uid && ($profile = imce_user_profile($user)) && $profile['usertab']);
 }
 
 /**

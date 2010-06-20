@@ -4,8 +4,8 @@ description = "An image/file uploader and browser supporting personal directorie
 core = "6.x"
 
 ; Information added by drupal.org packaging script on 2010-05-29
-version = "6.x-2.0-beta3"
+version = "6.x-1.4"
 core = "6.x"
 project = "imce"
-datestamp = "1275171908"
+datestamp = "1275099907"
 

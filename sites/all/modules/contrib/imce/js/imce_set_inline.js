@@ -1,34 +1,32 @@
-// $Id: imce_set_inline.js,v 1.4 2010/03/17 20:55:38 ufku Exp $
+// $Id: imce_set_inline.js,v 1.3.2.5 2009/09/21 14:26:39 ufku Exp $
 
-(function($) {
+var imceInline = {};
 
-var ii = window.imceInline = {};
-
-ii.initiate = function() {
+imceInline.initiate = function() {
   $('div.imce-inline-wrapper').show().find('a').click(function() {
     var i = this.name.indexOf('-IMCE-');
-    ii.activeTextarea = $('#'+ this.name.substr(0, i)).get(0);
-    ii.activeType = this.name.substr(i+6);
+    imceInline.activeTextarea = $('#'+ this.name.substr(0, i)).get(0);
+    imceInline.activeType = this.name.substr(i+6);
  
-    if (typeof ii.pop == 'undefined' || ii.pop.closed) {
-      ii.pop = window.open(this.href + (this.href.indexOf('?') < 0 ? '?' : '&') +'app=nomatter|imceload@imceInline.load', '', 'width='+ 760 +',height='+ 560 +',resizable=1');
+    if (typeof imceInline.pop == 'undefined' || imceInline.pop.closed) {
+      imceInline.pop = window.open(this.href + (this.href.indexOf('?') < 0 ? '?' : '&') +'app=nomatter|imceload@imceInlineImceLoad', '', 'width='+ 760 +',height='+ 560 +',resizable=1');
     }
 
-    ii.pop.focus();
+    imceInline.pop.focus();
     return false;
   });
 };
 
 //function to be executed when imce loads.
-ii.load = function(win) {
-  win.imce.setSendTo(Drupal.t('Send to @app', {'@app': Drupal.t('textarea')}), ii.insert);
+function imceInlineImceLoad(win) {
+  win.imce.setSendTo(Drupal.t('Send to @app', {'@app': Drupal.t('textarea')}), imceInline.insert);
   $(window).unload(function() {
-    if (ii.pop && !ii.pop.closed) ii.pop.close();
+    if (imceInline.pop && !imceInline.pop.closed) imceInline.pop.close();
   });
 };
 
 //insert html at cursor position
-ii.insertAtCursor = function (field, txt, type) {
+imceInline.insertAtCursor = function (field, txt, type) {
   field.focus();
   if ('undefined' != typeof(field.selectionStart)) {
     if (type == 'link' && (field.selectionEnd-field.selectionStart)) {
@@ -48,14 +46,12 @@ ii.insertAtCursor = function (field, txt, type) {
 };
 
 //sendTo function
-ii.insert = function (file, win) {
-  var type = ii.activeType == 'link' ? 'link' : (file.width ? 'image' : 'link');
+imceInline.insert = function (file, win) {
+  var type = imceInline.activeType == 'link' ? 'link' : (file.width ? 'image' : 'link');
   var html = type == 'image' ? ('<img src="'+ file.url +'" width="'+ file.width +'" height="'+ file.height +'" alt="'+ file.name +'" />') : ('<a href="'+ file.url +'">'+ file.name +' ('+ file.size +')</a>');
-  ii.activeType = null;
+  imceInline.activeType = null;
   win.blur();
-  ii.insertAtCursor(ii.activeTextarea, html, type);
+  imceInline.insertAtCursor(imceInline.activeTextarea, html, type);
 };
 
-$(document).ready(ii.initiate);
-
-})(jQuery);
+$(document).ready(imceInline.initiate);

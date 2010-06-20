@@ -1,5 +1,5 @@
 <?php
-// $Id: openwysiwyg.inc,v 1.4 2009/06/13 02:17:10 sun Exp $
+// $Id: openwysiwyg.inc,v 1.4.2.2 2010/04/07 21:18:43 sun Exp $
 
 /**
  * @file
@@ -21,6 +21,8 @@ function wysiwyg_openwysiwyg_editor() {
         'files' => array('wysiwyg.js'),
       ),
     ),
+    'toolbar rows' => TRUE,
+    'toolbar separator' => TRUE,
     'version callback' => 'wysiwyg_openwysiwyg_version',
     'themes callback' => 'wysiwyg_openwysiwyg_themes',
     'settings callback' => 'wysiwyg_openwysiwyg_settings',
@@ -45,7 +47,11 @@ function wysiwyg_openwysiwyg_editor() {
  *   The installed editor version.
  */
 function wysiwyg_openwysiwyg_version($editor) {
+  // 'library path' has '/scripts' appended already.
   $changelog = $editor['editor path'] . '/changelog';
+  if (!file_exists($changelog)) {
+    return;
+  }
   $changelog = fopen($changelog, 'r');
   $line = fgets($changelog, 20);
   if (preg_match('@v([\d\.]+)@', $line, $version)) {
@@ -104,25 +110,36 @@ function wysiwyg_openwysiwyg_settings($editor, $config, $theme) {
     }
   }
 
-  if (!empty($config['buttons'])) {
+  if (!empty($config['toolbar'])) {
+    $toolbar = array();
     $plugins = wysiwyg_get_plugins($editor['name']);
-    foreach ($config['buttons'] as $plugin => $buttons) {
-      foreach ($buttons as $button => $enabled) {
-        foreach (array('buttons', 'extensions') as $type) {
+    foreach ($config['toolbar'] as $row) {
+      $toolbar_row = array();
+
+      foreach ($row as $buttons) {
+        foreach ($buttons as $button_config) {
           // Skip unavailable plugins.
-          if (!isset($plugins[$plugin][$type][$button])) {
+          $plugin = $button_config['plugin'];
+          $button = $button_config['button'];
+
+          if ($button == 'separator') {
+            $toolbar_row[] = 'seperator';
+          }
+          elseif (!isset($plugins[$plugin]['buttons'][$button])) {
             continue;
           }
-          // Add buttons.
-          if ($type == 'buttons') {
-            $settings['Toolbar'][0][] = $button;
-          }
+
+          $toolbar_row[] = $button;
         }
       }
+
+      $toolbar[] = $toolbar_row;
     }
+
+    $settings['Toolbar'] = $toolbar;
   }
 
-  // @todo 
+  // @todo
 //  if (isset($config['block_formats'])) {
 //    $settings['DropDowns']['headings']['elements'] = explode(',', $config['block_formats']);
 //  }

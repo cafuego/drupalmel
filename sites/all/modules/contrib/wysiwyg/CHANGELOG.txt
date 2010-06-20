@@ -1,4 +1,4 @@
-// $Id: CHANGELOG.txt,v 1.149.2.41 2010/03/08 15:49:15 sun Exp $
+// $Id: CHANGELOG.txt,v 1.149.2.44 2010/04/07 21:18:43 sun Exp $
 
 Wysiwyg x.x-x.x, xxxx-xx-xx
 ---------------------------
@@ -6,6 +6,9 @@ Wysiwyg x.x-x.x, xxxx-xx-xx
 
 Wysiwyg 6.x-2.x, xxxx-xx-xx
 ---------------------------
+#752516 by nquocbao, sun: Fixed openwysiwyg version callback.
+#753536 by TwoD: Fixed version detection for Whizzywig.
+#752516 by nquocbao, sun: Fixed file stream warnings in version callbacks.
 
 
 Wysiwyg 6.x-2.1, 2010-03-08

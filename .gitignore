@@ -1,4 +1,8 @@
 sites/default/settings.php
 sites/default/files
 sites/default/database/dump.sh
+<<<<<<< HEAD
 sites/default/database/users.sql
+=======
+sites/default/database/users.sql
+>>>>>>> 5d3360ee1848371d939bec54e573ca5b3dc08a77

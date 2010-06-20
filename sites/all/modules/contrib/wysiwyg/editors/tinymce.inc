@@ -1,5 +1,5 @@
 <?php
-// $Id: tinymce.inc,v 1.35.2.3 2010/02/10 21:16:50 twod Exp $
+// $Id: tinymce.inc,v 1.35.2.4 2010/04/02 14:05:54 sun Exp $
 
 /**
  * @file
@@ -27,6 +27,8 @@ function wysiwyg_tinymce_editor() {
         'files' => array('tiny_mce_src.js'),
       ),
     ),
+    'toolbar rows' => TRUE,
+    'toolbar separator' => TRUE,
     'version callback' => 'wysiwyg_tinymce_version',
     'themes callback' => 'wysiwyg_tinymce_themes',
     'settings callback' => 'wysiwyg_tinymce_settings',
@@ -82,6 +84,9 @@ function wysiwyg_tinymce_editor() {
  */
 function wysiwyg_tinymce_version($editor) {
   $script = $editor['library path'] . '/tiny_mce.js';
+  if (!file_exists($script)) {
+    return;
+  }
   $script = fopen($script, 'r');
   // Version is contained in the first 100 chars.
   $line = fgets($script, 100);
@@ -188,75 +193,88 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
     if ($config['css_setting'] == 'theme') {
       $settings['content_css'] = implode(',', wysiwyg_get_css());
     }
-    else if ($config['css_setting'] == 'self' && isset($config['css_path'])) {
+    elseif ($config['css_setting'] == 'self' && isset($config['css_path'])) {
       $settings['content_css'] = strtr($config['css_path'], array('%b' => base_path(), '%t' => path_to_theme()));
     }
   }
 
-  // Find the enabled buttons and the button row they belong on.
-  // Also map the plugin metadata for each button.
-  // @todo What follows is a pain; needs a rewrite.
-  if (!empty($config['buttons']) && is_array($config['buttons'])) {
-    // $settings['buttons'] are stacked into
-    // $settings['theme_advanced_buttons1'] later.
-    // @todo Add a toolbar designer based on jQuery UI.
-    $settings['buttons'] = array();
-    // Only array keys in $settings['extensions'] matter; added to
-    // $settings['plugins'] later.
-    $settings['extensions'] = array();
-    // $settings['extended_valid_elements'] are just stacked, unique'd later,
-    // and transformed into a comma-separated string in
-    // wysiwyg_add_editor_settings().
-    // @todo Needs a complete plugin API redesign using arrays for
-    //   tag => attributes definitions and array_merge_recursive().
-    $settings['extended_valid_elements'] = array();
+  $plugins = wysiwyg_get_plugins($editor['name']);
+  $settings['extended_valid_elements'] = array();
+  $toolbar = array();
+  $extensions = array();
 
-    $plugins = wysiwyg_get_plugins($editor['name']);
-    foreach ($config['buttons'] as $plugin => $buttons) {
-      foreach ($buttons as $button => $enabled) {
-        // Iterate separately over buttons and extensions properties.
-        foreach (array('buttons', 'extensions') as $type) {
-          // Skip unavailable plugins.
-          if (!isset($plugins[$plugin][$type][$button])) {
-            continue;
-          }
-          // Add buttons.
-          if ($type == 'buttons') {
-            $settings['buttons'][] = $button;
-          }
-          // Add external Drupal plugins to the list of extensions.
-          if ($type == 'buttons' && !empty($plugins[$plugin]['proxy'])) {
-            $settings['extensions'][_wysiwyg_tinymce_plugin_name('add', $button)] = 1;
-          }
-          // Add external plugins to the list of extensions.
-          else if ($type == 'buttons' && empty($plugins[$plugin]['internal'])) {
-            $settings['extensions'][_wysiwyg_tinymce_plugin_name('add', $plugin)] = 1;
-          }
-          // Add internal buttons that also need to be loaded as extension.
-          else if ($type == 'buttons' && !empty($plugins[$plugin]['load'])) {
-            $settings['extensions'][$plugin] = 1;
-          }
-          // Add plain extensions.
-          else if ($type == 'extensions' && !empty($plugins[$plugin]['load'])) {
-            $settings['extensions'][$plugin] = 1;
-          }
-          // Allow plugins to add valid HTML elements.
-          if (!empty($plugins[$plugin]['extended_valid_elements'])) {
-            $settings['extended_valid_elements'] = array_merge($settings['extended_valid_elements'], $plugins[$plugin]['extended_valid_elements']);
-          }
-          // Allow plugins to add or override global configuration settings.
-          if (!empty($plugins[$plugin]['options'])) {
-            $settings = array_merge($settings, $plugins[$plugin]['options']);
-          }
+  foreach ((array)$config['extensions'] as $plugin => $buttons) {
+    foreach ($buttons as $button => $enabled) {
+      if (!isset($plugins[$plugin], $plugins[$plugin]['extensions'], $plugins[$plugin]['extensions'][$button])) {
+        continue;
+      }
+
+      // Add plain extensions.
+      if (!empty($plugins[$plugin]['load'])) {
+        $extensions[$plugin] = 1;
+      }
+
+      // Allow plugins to add valid HTML elements.
+      if (!empty($plugins[$plugin]['extended_valid_elements'])) {
+        $settings['extended_valid_elements'] = array_merge($settings['extended_valid_elements'], $plugins[$plugin]['extended_valid_elements']);
+      }
+
+      // Allow plugins to add or override global configuration settings.
+      if (!empty($plugins[$plugin]['options'])) {
+        $settings = array_merge($settings, $plugins[$plugin]['options']);
+      }
+    }
+  }
+
+  foreach ((array)$config['toolbar'] as $row) {
+    $group = array();
+
+    foreach ($row as $buttons) {
+      foreach ($buttons as $button_config) {
+        $plugin = $button_config['plugin'];
+        $button = $button_config['button'];
+
+        if ($button == 'separator') {
+          $group[] = '|';
+          continue;
+        }
+        if (!isset($plugins[$plugin]['buttons'][$button])) {
+          continue;
+        }
+
+        $group[] = $button;
+
+        // Add external Drupal plugins to the list of extensions.
+        if (!empty($plugins[$plugin]['proxy'])) {
+          $extensions[_wysiwyg_tinymce_plugin_name('add', $button)] = 1;
+        }
+        // Add external plugins to the list of extensions.
+        elseif (empty($plugins[$plugin]['internal'])) {
+          $extensions[_wysiwyg_tinymce_plugin_name('add', $plugin)] = 1;
+        }
+        // Add internal buttons that also need to be loaded as extension.
+        elseif (!empty($plugins[$plugin]['load'])) {
+          $extensions[$plugin] = 1;
+        }
+
+        // Allow plugins to add or override global configuration settings.
+        if (!empty($plugins[$plugin]['options'])) {
+          $settings = array_merge($settings, $plugins[$plugin]['options']);
+        }
+
+        // Allow plugins to add valid HTML elements.
+        if (!empty($plugins[$plugin]['extended_valid_elements'])) {
+          $settings['extended_valid_elements'] = array_merge($settings['extended_valid_elements'], $plugins[$plugin]['extended_valid_elements']);
         }
       }
     }
-    // Clean-up.
-    $settings['extended_valid_elements'] = array_unique($settings['extended_valid_elements']);
-    if ($settings['extensions']) {
-      $settings['plugins'] = array_keys($settings['extensions']);
-    }
-    unset($settings['extensions']);
+
+    $toolbar[] = $group;
+  }
+
+  $settings['extended_valid_elements'] = array_unique($settings['extended_valid_elements']);
+  if ($extensions) {
+    $settings['plugins'] = array_keys($extensions);
   }
 
   // Add theme-specific settings.
@@ -273,7 +291,7 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
       if (isset($config['block_formats'])) {
         $settings['theme_advanced_blockformats'] = $config['block_formats'];
       }
-      if (isset($settings['buttons'])) {
+      if ($toolbar) {
         // These rows explicitly need to be set to be empty, otherwise TinyMCE
         // loads its default buttons of the advanced theme for each row.
         $settings += array(
@@ -281,14 +299,17 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
           'theme_advanced_buttons2' => array(),
           'theme_advanced_buttons3' => array(),
         );
-        // @todo Allow to sort/arrange editor buttons.
-        for ($i = 0; $i < count($settings['buttons']); $i++) {
-          $settings['theme_advanced_buttons1'][] = $settings['buttons'][$i];
+
+        for ($i = 0;$i < count($toolbar);$i++) {
+          $group = $toolbar[$i];
+
+          foreach ($group as $button) {
+            $settings['theme_advanced_buttons' . ($i+1)][] = $button;
+          }
         }
       }
       break;
   }
-  unset($settings['buttons']);
 
   // Convert the config values into the form expected by TinyMCE.
   foreach ($settings as $key => $value) {

@@ -1,0 +1,242 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WYSYIWG Image upload\n"
+"POT-Creation-Date: 2010-04-11 20:23+0200\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Eugen Mayer <mayer@impressive-media.de>\n"
+"Language-Team: Eugen Mayer <mayer@impressive-media.de>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: plurales=(n!=1);\n"
+"X-Poedit-Language: German\n"
+"X-Poedit-Country: GERMANY\n"
+
+#: wysiwyg_imageupload.admin.inc:13
+msgid "Image style"
+msgstr "Gestaltung"
+
+#: wysiwyg_imageupload.admin.inc:14
+msgid "Define which CSS styles the user can chose when adding an image. Please do not define floating or size in that CSS classes, as this is handled seperately. You can give the style a descriptive name to make it easier to handle. The syntax is \"Descriptive Name=imgupl_style_XYC,Other Descriptive name=imgupl_style_ZXC..\" while imgupl_style_* is a css class"
+msgstr "Definieren Sie, welche Gestaltungsmöglichkeiten der Benutzer zur Auswahl hat. Bitte achten Sie darauf, dass Sie weder floating noch größe festlegen, die wird seperat gemacht. Die Syntax ist \"Descriptive Name=imgupl_style_XYC,Other Descriptive name=imgupl_style_ZXC..\" wähere imgupl_style_* eine CSS Klasse ist."
+
+#: wysiwyg_imageupload.admin.inc:22
+#: wysiwyg_imageupload.module:200
+msgid "!preset"
+msgstr "!preset"
+
+#: wysiwyg_imageupload.admin.inc:27
+msgid "Allowed presets"
+msgstr "Erlaubte Presets"
+
+#: wysiwyg_imageupload.admin.inc:28
+msgid "Only the selected presets are allowed to be chosen in the dialog"
+msgstr "Nur die gewählten Presets sind im Dialog erlaubt und werden dort angezeigt"
+
+#: wysiwyg_imageupload.admin.inc:33
+msgid "Presets"
+msgstr "Presets"
+
+#: wysiwyg_imageupload.ajax.inc:53
+msgid "Select an image to upload first"
+msgstr "Bitte zuerst ein Bild auswählen"
+
+#: wysiwyg_imageupload.ajax.inc:60
+#: wysiwyg_imageupload.form.inc:94;99;116;176
+msgid "Upload image"
+msgstr "Bild hochladen"
+
+#: wysiwyg_imageupload.file.inc:33
+msgid "wysiwyg_imageupload"
+msgstr "wysiwyg_imageupload"
+
+#: wysiwyg_imageupload.file.inc:33
+msgid "Could not set permissons on destination file: %file"
+msgstr "Konnte Rechte für die Zieldatei :%file nicht setzen"
+
+#: wysiwyg_imageupload.form.inc:127
+msgid "Title"
+msgstr "Titel"
+
+#: wysiwyg_imageupload.form.inc:134
+msgid "Image alignment"
+msgstr "Textfluss"
+
+#: wysiwyg_imageupload.form.inc:136
+msgid "Image is inline with the text (none)"
+msgstr "Text unter/vor Bild (kein Textfluss)"
+
+#: wysiwyg_imageupload.form.inc:137
+msgid "Image on left, text on right"
+msgstr "Bild links, Text rechts"
+
+#: wysiwyg_imageupload.form.inc:138
+msgid "Image on right, text on left"
+msgstr "Bild rechts, Text links"
+
+#: wysiwyg_imageupload.form.inc:145
+msgid "Size"
+msgstr "Größe"
+
+#: wysiwyg_imageupload.form.inc:153
+msgid "None"
+msgstr "Keine"
+
+#: wysiwyg_imageupload.form.inc:156
+msgid "Style"
+msgstr "Gestaltung"
+
+#: wysiwyg_imageupload.form.inc:171
+msgid "Select an image to upload"
+msgstr "Wählen Sie ein Bild aus, das hochgeladen werden soll"
+
+#: wysiwyg_imageupload.form.inc:181
+msgid "Please wait..."
+msgstr "Bitte warten.."
+
+#: wysiwyg_imageupload.form.inc:195
+msgid "Update image"
+msgstr "Bild aktualisieren"
+
+#: wysiwyg_imageupload.form.inc:198
+msgid "The image does not exist (!path)"
+msgstr "Das Bild existiert nicht (!path)"
+
+#: wysiwyg_imageupload.module:133
+msgid "!style"
+msgstr "!style"
+
+#: wysiwyg_imageupload.module:76
+msgid "use wysiwyg image upload"
+msgstr "use wysiwyg image upload"
+
+#: wysiwyg_imageupload.module:50
+#: wysiwyg_imageupload.info:0
+msgid "WYSIWYG Image upload"
+msgstr "WYSIWYG Bild hochladen"
+
+#: wysiwyg_imageupload.module:51
+msgid "Configuration options for the WYSIWYG Image upload module"
+msgstr "Konfiguration des WYSIWYG Bild-hochlad-Modules"
+
+#: wysiwyg_imageupload.info:0
+msgid "Image upload dialog for the most WYSIWYG Editors"
+msgstr "Dialog zum Bild-hochladen für die meisten WYSIWYG Editoren"
+
+#: wysiwyg_imageupload.info:0
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.info:0
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.info:0
+msgid "WYSIWYG"
+msgstr "WYSIWYG"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:46;73
+msgid "Browser"
+msgstr "Browser"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:46
+msgid "Choose a new image out of all your already uploaded ones"
+msgstr "Wählen Sie ein neues Bild aus Ihren bereits vorhandenen Bilder aus"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:55
+msgid "Max. Items Displayed"
+msgstr "Maximale Anzahl an angezeigten Bildern"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:56
+msgid "Define how many Images should be displayed inside the Browser"
+msgstr "Legen Sie fest, wieviele Bilder maximal angezeigt werden sollen"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:72
+msgid "New Image"
+msgstr "Neues Bild"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:72
+msgid "Go back to the upload form and upload a new image"
+msgstr "Zurück zum Upload um ein neues Bild hochzuladen"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.module:80;83
+msgid "Insert this image"
+msgstr "Dieses Bild einfügen"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.info:0
+msgid "WYSIWYG Image upload Browser"
+msgstr "WYSIWYG Image upload Browser"
+
+#: modules/wysiwyg_imageupload_browser/wysiwyg_imageupload_browser.info:0
+msgid "Browser for the last x Images inserted by the User"
+msgstr "Nach den letzen eingefügten Bildern suchen"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.module:34
+msgid "You nee to have img_assist activated during migration"
+msgstr "You nee to have img_assist activated during migration"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.module:46
+msgid "Migration completed, overall !images images migrated"
+msgstr "Migration completed, overall !images images migrated"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.module:8
+msgid "Migrate from img_assist"
+msgstr "Migrate from img_assist"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.module:15
+msgid "Wysiwyg imageupload migration"
+msgstr "Wysiwyg imageupload migration"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.module:21
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.info:0
+msgid "WYSIWYG Image upload migration tool"
+msgstr "WYSIWYG Image upload migration tool"
+
+#: modules/wysiwyg_imageupload_migration/wysiwyg_imageupload_migration.info:0
+msgid "Migrates different image upload systems into wysiwyg_imageupload"
+msgstr "Migrates different image upload systems into wysiwyg_imageupload"
+
+#: plugins/imgupload.inc:10
+msgid "Image uploading"
+msgstr "Bild hochladen"
+
+#: plugins/imgupload.inc:13
+msgid "Insert or update an embedded image"
+msgstr "Fügen Sie ein Bild ein oder aktualisieren Sie dieses"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Insert"
+msgstr "Einfügen"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Please select an image to upload first"
+msgstr "Bitte wählen Sie zuvor ein Bild aus, das Sie hochladen wollen"
+
+#: plugins/imgupload/imgupload.js:0;0
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: plugins/imgupload/imgupload.js:0
+msgid "Update"
+msgstr "Aktualisieren"
+
+#~ msgid "Choose an image"
+#~ msgstr "Wählen Sie ein Bild"
+#~ msgid "Upload picture"
+#~ msgstr "Bild hochladen"
+#~ msgid "Text floating"
+#~ msgstr "Textfluss"
+#~ msgid "Below image (none)"
+#~ msgstr "Unter dem Bild (oder kein Text)"
+#~ msgid "Text right beside image"
+#~ msgstr "Text fließt rechts vom Bild"
+#~ msgid "Text left beside image"
+#~ msgstr "Text fließt links vom Bild"
+#~ msgid "JQuery UI Dialog API"
+#~ msgstr "JQuery UI Dialog API"
+#~ msgid ""
+#~ "A slim API to support jquery ui dialogs in Drupal. Just provides an "
+#~ "direct interface to the jquery-ui-dialog plugin"
+#~ msgstr ""
+#~ "A slim API to support jquery ui dialogs in Drupal. Just provides an "
+#~ "direct interface to the jquery-ui-dialog plugin"
+#~ msgid "Loading..."
+#~ msgstr "Lade..."
+
