@@ -1,0 +1,15 @@
+; $Id: feedapi_scraper.info,v 1.2 2009/05/16 15:46:20 antoniodemarco Exp $
+
+name = Feed Scraper
+description = Scrape HTML content from feed elements using custom parsers and map it to CCK fields.
+package = FeedAPI Add On
+dependencies[] = feedapi
+dependencies[] = feedapi_mapper
+core = 6.x
+php = 5.0
+; Information added by drupal.org packaging script on 2009-09-05
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "feedapi_scraper"
+datestamp = "1252152593"
+

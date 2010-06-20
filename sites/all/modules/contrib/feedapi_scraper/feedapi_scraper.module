@@ -1,0 +1,812 @@
+<?php
+// $Id: feedapi_scraper.module,v 1.28 2009/09/05 08:34:27 antoniodemarco Exp $
+
+/**
+ * @file
+ * The module extracts encoded HTML content from feed items using different parsers. 
+ * It integrates with FeedAPI Mapper.
+ */
+
+/**
+ * Name space for elements parsed by Feed Scraper
+ */
+define('FEEDAPI_SCRAPER_NAMESPACE', 'feedapi_scraper');
+
+/**
+ * Implementation of hook_help().
+ */
+function feedapi_scraper_help($path, $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('Provide a way to grab HTML contained in the feed elements using custom parsers.');
+    case 'feedapi/full_name':
+      return t('Parser Feed Scraper. Please, do NOT use it as primary parser');
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function feedapi_scraper_menu() {
+  $items = array();
+  $items['node/%node/scraper'] = array(
+    'title' => t('Scrapers'),
+    'page callback' => 'feedapi_scraper_expressions',
+    'page arguments' => array(1), 
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => 'feedapi_scraper_access',
+    'access arguments' => array(1),
+    'weight' => -1,
+    );
+  $items['node/%node/scraper/list'] = array(
+    'title' => t('List'),
+    'page callback' => 'feedapi_scraper_expressions',
+    'page arguments' => array(1), 
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'access callback' => 'feedapi_scraper_access',
+    'access arguments' => array(1),
+    'weight' => 0,
+  );
+  $items['node/%node/scraper/add'] = array(
+    'title' => t('Add'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('feedapi_scraper_add'),
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => 'feedapi_scraper_access',
+    'access arguments' => array(1),
+    'weight' => 1,
+  );
+  $items['node/%node/scraper/%/delete'] = array(
+    'title' => t('Delete'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('feedapi_scraper_delete', 1, 3),
+    'type' => MENU_CALLBACK,
+    'access callback' => 'feedapi_scraper_access',
+    'access arguments' => array(1),
+    'weight' => 1,
+  );
+  $items['node/%node/scraper/%/edit'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('feedapi_scraper_edit', 1, 3),
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => 'feedapi_scraper_access',
+    'access arguments' => array(1),
+    'weight' => 1,
+  );
+  return $items;
+}
+
+function feedapi_scraper_init() {
+  drupal_add_css(drupal_get_path('module', 'feedapi_scraper') .'/feed_scraper.css');
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function feedapi_scraper_theme() {
+  return array(
+    'feedapi_scraper_edit' => array('arguments' => array('form' => NULL)),
+  );
+}
+
+/**
+ * Expressions management page
+ *
+ * @param $node
+ *    Feed node object.
+ */
+function feedapi_scraper_expressions($node = NULL) {
+  
+  drupal_set_title($node->title);
+  $result = db_query("SELECT * FROM {feedapi_scraper} WHERE nid = %d", $node->nid); 
+  $header = array(t('Name'), t('Expression'), t('Applied on'));
+  if ($result) {
+    while ($expression = db_fetch_object($result)) {
+      $row = array();
+      $actions = l('<span>'. t('Delete') .'</span>', 'node/'. $node->nid .'/scraper/'. $expression->eid .'/delete', array('attributes' => array('class' => 'scraper-action delete', 'title' => t('Delete')), 'html' => TRUE));
+      $row[] = array('data' => $actions . l($expression->name, 'node/'. $node->nid .'/scraper/'. $expression->eid .'/edit'), 'class' => 'name');
+      $row[] = array('data' => '<span class="type">'. $expression->type .'</span> '. $expression->expression, 'class' => 'expression');
+      $row[] = array('data' => $expression->feed_item, 'class' => 'feed_item');
+      $rows[] = $row;
+    }
+  }
+  else {
+    $rows[] = array(array('data' => t('No expression available.'), 'colspan' => '3'));
+  }
+
+  $output .= theme('table', $header, $rows, array('class' => 'scrapers'));
+  return $output;
+}
+
+/**
+ * Add a scraper form
+ *
+ * @return
+ *    Submission form
+ */
+function feedapi_scraper_add() {
+
+  list(, $nid) = explode('/', $_GET['q']);
+  $node = node_load(array('nid' => $nid));
+  
+  // Get elements of feed items. Since not public function is give 
+  // we are forced to use private ones.
+  if ($merged_item = _feedapi_mapper_get_items_merged($node)) {
+    $merged_item = _feedapi_mapper_simplify_raw($merged_item, $node->feed->parsers);
+    $elements = _feedapi_mapper_get_feed_elements($merged_item);
+  }
+  else {
+    $elements = _feedapi_mapper_get_standard_elements();
+  }
+  $elements = array_combine(array_keys($elements), array_keys($elements));
+  
+  // Remove elements parsed by the module itself
+  foreach ($elements as $element) {
+    if (strstr($element, '->'. FEEDAPI_SCRAPER_NAMESPACE .'->')) {
+      unset($elements[$element]);
+    }
+  }
+
+  $form = array();
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#description' => t('Please only use alphanumeric characters and underscores (_) for preset names.'),
+    '#required' => 1,
+  );  
+  $form['expression'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Expression'),
+    '#description' => t('Write the scraper expression you want to apply on the selected feed item.'),
+    '#required' => 1,
+  );  
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => _feedapi_scraper_get_parsers(),
+    '#description' => t('Choose which kind of expression you want to use.'),
+    '#required' => 1,
+  );  
+  $form['feed_item'] = array(
+    '#type' => 'select',
+    '#title' => t('Feed Item'),
+    '#options' => $elements,
+    '#required' => 1,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add'),
+  );
+  return $form;
+}
+
+/**
+ * Implementation of hook_submit()
+ */
+function feedapi_scraper_add_submit($form, &$form_state) {
+  list(, $nid) = explode('/', $_GET['q']);
+  $node = node_load(array('nid' => $nid));
+  if (db_query("INSERT INTO {feedapi_scraper} (nid, name, type, feed_item, expression) VALUES (%d, '%s', '%s', '%s', '%s')", $nid, $form['name']['#value'], $form['type']['#value'], $form['feed_item']['#value'], $form['expression']['#value'])) {
+    drupal_set_message(t('The new scraper has been added successfully.'));
+    drupal_goto('node/'. $nid .'/scraper');  
+  }
+}
+
+/**
+ * Implementation of hook_validate()
+ */
+function feedapi_scraper_add_validate($form, &$form_state) {
+  
+  list(, $nid) = explode('/', $_GET['q']);
+  $node = node_load(array('nid' => $nid));
+  
+  if (preg_match('/[^0-9a-zA-Z_]/', $form['name']['#value'])) {
+    form_set_error('name', t('Please only use alphanumeric characters and underscores (_) for scraper names.'));
+  }
+  // check for duplicates 
+  elseif (db_fetch_array(db_query("SELECT * FROM {feedapi_scraper} WHERE nid = %d AND name = '%s'", $nid, $form['name']['#value']))) {
+    form_set_error('name', t('The name is already in use. Please, choose another name.'));
+  }
+  
+  $map = _feedapi_scraper_get_parser_map();            
+  $valid = module_invoke($map[$form['type']['#value']], 'scraper_parser', 'validate', $form['type']['#value'], $form['expression']['#value']);
+  if (!$valid) {
+    form_set_error('expression', t('The expression you provided is not a valid %type.', array('%type' => $form['type']['#options'][$form['type']['#value']])));
+  }
+}
+
+
+function feedapi_scraper_edit($form_state, $node, $eid) {
+  
+  $expression = db_fetch_object(db_query('SELECT * FROM {feedapi_scraper} WHERE eid = %d', $eid));
+  drupal_set_title($node->title);
+  
+  $feedapi_allow_html_all = variable_get('feedapi_allow_html_all', FALSE);
+  variable_set('feedapi_allow_html_all', TRUE);
+  $parsed_content = _feedapi_parse($node->feed);
+  $path = explode('->', $expression->feed_item);
+  if ($parsed_content->items[0]) {
+    $input = _feedapi_scraper_get_item($path, $parsed_content->items[0]);
+    $input = _feedapi_scraper_prepare_html($input);
+  }
+  else {
+    $input = t('No input available.');
+  }
+  variable_set('feedapi_allow_html_all', $feedapi_allow_html_all);
+
+  if ($form_state['post']['test']) {
+    $map = _feedapi_scraper_get_parser_map();
+    $scraped_content = module_invoke($map[$form_state['post']['type']], 'scraper_parser', 'parse', $form_state['post']['type'], $form_state['post']['expression'], $input);
+    if ($scraped_content) {
+      drupal_set_message(t('Test: "<span class="fixed-size">%expression</span>" on "<span class="fixed-size">%item</span>"  run successfully.', array('%expression' => $form_state['post']['expression'], '%item' => $expression->feed_item)));
+    }
+    else {
+      drupal_set_message(t('Test: "<span class="fixed-size">%expression</span>" reported errors.', array('%expression' => $form_state['post']['expression'])), 'error');
+    }
+  }
+  else {
+    $scraped_content = t('No output available. Run a test to get it.');
+  }
+  
+  $form = array();
+  $form['title'] = array(
+    '#type' => 'markup',
+    '#value' => '<h3>'. t('Edit Scraper:') .' <span class="fixed-size">'. $expression->name .'</span></h3>',
+  );
+  $form['eid'] = array(
+    '#type' => 'hidden',
+    '#value' => $expression->eid,
+  );
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $node->nid,
+  );
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#description' => t('Please only use alphanumeric characters and underscores (_) for preset names.'),
+    '#required' => 1,
+    '#default_value' => $form_state['post']['name'] ? $form_state['post']['name'] : $expression->name,
+  );  
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => _feedapi_scraper_get_parsers(),
+    '#required' => 1,
+    '#default_value' => $form_state['post']['type'] ? $form_state['post']['type'] : $expression->type,
+  );  
+  $form['expression'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Expression'),
+    '#required' => 1,
+    '#size' => 45, 
+    '#default_value' => $form_state['post']['expression'] ? $form_state['post']['expression'] : $expression->expression,
+  );  
+  $form['test'] = array(
+    '#type' => 'button',
+    '#name' => 'test',
+    '#value' => t('Scrape'),
+  );
+  $form['input'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Feed Item') .' <span class="feed-item">'. $expression->feed_item .'</span>',
+    '#attributes' => array('readonly' => 1),
+    '#id' => 'feedapi_scraper-input',
+    '#default_value' => trim(str_ireplace("  ", '', $input)),
+  );  
+  $form['output'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Scraped Content'),
+    '#attributes' => array('readonly' => 1),
+    '#id' => 'feedapi_scraper-output',
+    '#value' => trim(str_ireplace("  ", '', $scraped_content)),
+  );  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#name' => 'save',
+    '#value' => t('Save'),
+  );
+  return $form;  
+}
+
+/**
+ * Theme function for theme_feedapi_scraper_edit form.
+ *
+ * @param $form
+ *    Form array
+ * @return
+ *    Themed form
+ */
+function theme_feedapi_scraper_edit(&$form) {
+  
+  $output = drupal_render($form['title']);
+  $output .= drupal_render($form['name']);
+  $output .= drupal_render($form['eid']);
+  $output .= drupal_render($form['nid']);
+  
+  $row = array();
+  $rows = array();  
+  $row[] = array('data' => drupal_render($form['expression']));
+  $row[] = '';
+  $row[] = array('data' => drupal_render($form['type']));
+  $rows[] = $row;
+  $row = array();
+  $row[] = array('data' => drupal_render($form['input']));
+  $row[] = array('data' => drupal_render($form['test']), 'class' => 'arrow');
+  $row[] = array('data' => drupal_render($form['output']));
+  $rows[] = $row;
+  $output .= theme('table', array(), $rows);
+  
+  $output .= drupal_render($form['submit']);
+  $output .= drupal_render($form);
+  return $output;
+}
+
+
+/**
+ * Implementation of hook_validate()
+ */
+function feedapi_scraper_edit_validate($form, &$form_state) {
+  if (preg_match('/[^0-9a-zA-Z_]/', $form_state['name']['#value'])) {
+    form_set_error('name', t('Please only use alphanumeric characters and underscores (_) for scraper names.'));
+  }
+  // check for duplicates if the name is changed.
+  $expression = db_fetch_object(db_query("SELECT eid, name FROM {feedapi_scraper} WHERE nid = %d AND name = '%s'", $form['nid']['#value'], $form['name']['#value']));
+  if ($expression && $expression->eid != $form['eid']['#value']) {
+    form_set_error('name', t('The name is already in use. Please, choose another name.'));
+  }  
+  
+  $map = _feedapi_scraper_get_parser_map();            
+  $valid = module_invoke($map[$form['type']['#value']], 'scraper_parser', 'validate', $form['type']['#value'], $form['expression']['#value']);
+  if (!$valid) {
+    form_set_error('expression', t('The expression you provided is not a valid %type.', array('%type' => $form['type']['#options'][$form['type']['#value']])));
+  }
+}
+
+/**
+ * Implementation of hook_submit()
+ */
+function feedapi_scraper_edit_submit($form, &$form_state) {
+  if (db_query("UPDATE {feedapi_scraper} SET name = '%s', type = '%s', expression = '%s' WHERE nid = %d AND eid = %d", $form['name']['#value'], $form['type']['#value'], $form['expression']['#value'], $form['nid']['#value'], $form['eid']['#value'])) {
+    drupal_set_message(t('The scraper "%name" has been successfully updated.', array('%name' => $form['name']['#value'])));
+    drupal_goto('node/'. $form['nid']['#value'] .'/scraper');  
+  }
+}
+
+/**
+ * Delete a scraper
+ *
+ * @param $form_state
+ * @param $node
+ * @param $eid
+ *    Scraper id.
+ * @return
+ *    Confirm form.
+ */
+function feedapi_scraper_delete($form_state, $node, $eid) {
+  $expression = db_fetch_object(db_query('SELECT * FROM {feedapi_scraper} WHERE eid = %d', $eid));
+  $form['eid'] = array(
+    '#type' => 'hidden',
+    '#value' => $eid,
+  );
+  $form['name'] = array(
+    '#type' => 'hidden',
+    '#value' => $expression->name,
+  );
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $node->nid,
+  );
+  return confirm_form($form,
+    t('Are you sure you want to delete the scraper "%name"?', array('%name' => $expression->name)),
+    isset($_GET['destination']) ? $_GET['destination'] : 'node/'. $node->nid .'/scraper',
+    t('This action cannot be undone.'),
+    t('Delete'),
+    t('Cancel')
+  ); 
+}
+
+/**
+ * Implementation of hook_submit()
+ */
+function feedapi_scraper_delete_submit($form, &$form_state) {
+  db_query('DELETE FROM {feedapi_scraper} WHERE eid = %d', $form['eid']['#value']);
+  drupal_set_message(t('The scraper "%name" has been deleted.', array('%name' => $form['name']['#value'])));
+  drupal_goto('node/'. $form['nid']['#value'] .'/scraper');
+}
+
+/**
+ * Check if the current user can manage scraper expressions.
+ * Precondition is that Feed Scraper is enabled as secondary parsed.
+ * 
+ * @param $node
+ *   String that defines a content type or node object.
+ * @return 
+ *   TRUE if current user can administer feeds AND if Feed Scraper is enabled as secondary parsed.
+ *   FALSE otherwise.
+ */
+function feedapi_scraper_access($node) {
+  if (user_access('administer feedapi')) {
+    if (is_string($node)) {
+      $node_type = str_replace('-', '_', $node);
+    }
+    elseif (is_string($node->type)) {
+      $node_type = $node->type;
+    }
+    else {
+      return FALSE;
+    }
+    $settings = feedapi_get_settings($node_type);
+    if ($settings['enabled'] && $settings['parsers']['feedapi_scraper']['enabled']) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implementation of hook_feedapi_feed().
+ */
+function feedapi_scraper_feedapi_feed($op, $feed = NULL) {
+  switch ($op) {
+    case 'type':
+      return array("XML feed");
+    case 'compatible':
+      return "XML feed";
+    case 'parse':
+      $map = _feedapi_scraper_get_parser_map();            
+      // Parse the feed items according to the defined scrapers. 
+      foreach ($feed->items as $key => $item) {
+        $result = db_query("SELECT * FROM {feedapi_scraper} WHERE nid = %d", $feed->nid);
+        while ($scraper = db_fetch_object($result)) {
+          $path = explode('->', $scraper->feed_item);
+          if ($content = _feedapi_scraper_get_item($path, $item)) {
+            // Convert and balance potentially broken HTML 
+            $content = _feedapi_scraper_prepare_html($content);
+            // Scrape HTML content
+            $scraped_content = module_invoke($map[$scraper->type], 'scraper_parser', 'parse', $scraper->type, $scraper->expression, $content);
+            $path[] = $scraper->name;
+            _feedapi_scraper_set_item($path, $feed->items[$key]->options->{FEEDAPI_SCRAPER_NAMESPACE}, $scraped_content);
+          }
+          else {
+            // @todo: better to use watch dog?
+            drupal_set_message(t('Feed Scraper parser could not resolve %path', array('%path' => $scraper->feed_item)), 'error');
+          }
+        }
+      }
+
+      return $feed;      
+  }
+  return FALSE;
+}
+
+/**
+ * Polish HTML before to run any parser on it
+ *
+ * @param $content
+ *    Raw HTML content
+ * @return
+ *    Clean and balanced HTML
+ */
+function _feedapi_scraper_prepare_html($content) {
+  $content = html_entity_decode($content);
+  $content = _feedapi_scraper_balance_tags($content);
+  return $content;  
+}
+
+/**
+ * Get associative array mapping parsers with modules
+ * 
+ * @return
+ *    array('parser' => 'module')
+ */
+function _feedapi_scraper_get_parser_map() {
+  // Save module-parser mapping to limit the usage of hook_invoke().
+  $map = array();
+  $modules = module_implements('scraper_parser');
+  foreach ($modules as $module) {
+    if ($module_parsers = module_invoke($module, 'scraper_parser', 'list')) {
+      $filled = array_fill(0, count($module_parsers), $module);
+      $map = array_merge(array_combine(array_keys($module_parsers), $filled), $map);          
+    }
+  } 
+  return $map;
+}
+
+/**
+ * Recursive function to get the content of a feed item
+ *
+ * @param $path
+ *    Path to the leaf
+ * @param $item
+ *    Feed item object
+ * @return
+ *    Feed item content
+ */
+function _feedapi_scraper_get_item($path, &$item) {
+  $part = array_shift($path);
+  if (count($path) > 0) {
+    if (is_array($item)) {
+      return _feedapi_scraper_get_item($path, $item[$part]);
+    }
+    else {
+      return _feedapi_scraper_get_item($path, $item->{$part});
+    }
+  }
+  else {
+    if (is_array($item)) {
+      return $item[$part];
+    }
+    else {
+      return $item->{$part};
+    }
+  }
+}
+
+/**
+ * Recursive function to set the content of a feed item
+ *
+ * @param $path
+ *    Path to the leaf.
+ * @param $item
+ *    Feed item object.
+ * @param $content
+ *    Content to be set.
+ * @return
+ *    Feed item content.
+ */
+function _feedapi_scraper_set_item($path, &$item, &$content) {
+  $part = array_shift($path);
+  if (count($path) > 0) {
+    return _feedapi_scraper_set_item($path, $item->{$part}, $content);
+  }
+  else {
+    $item->{$part} = $content;
+    return TRUE;
+  }
+}
+
+/**
+ * Get list of parsers invoking hook_scraper_parser().
+ *
+ * @return
+ *    List of parsers
+ */
+function _feedapi_scraper_get_parsers() {
+  $parsers = array();
+  $modules = module_implements('scraper_parser');
+  foreach ($modules as $module) {
+    if ($module_parsers = module_invoke($module, 'scraper_parser', 'list')) {
+      $parsers = array_merge($module_parsers, $parsers);          
+    }
+  } 
+  return $parsers;
+}
+
+/**
+ * Implementation of hook_scraper_parser()
+ *
+ * @param $op
+ *    Hook operation: 'list', 'validate', 'parse'
+ * @param $type
+ *    Type of parser, since each hook can return mor then one, used in 'validation'.
+ * @param $expression
+ *    The scraper expression to apply to the raw content, used in 'parse'
+ * @param $raw
+ *    The raw content to apply the expression on, used in 'parse'
+ * @return 
+ *    mixed
+ */
+function feedapi_scraper_scraper_parser($op, $type = NULL, $expression = NULL, $raw = NULL) {
+  switch ($op) {
+    case 'list':
+      $parsers['xpath'] = t('XPath query');
+      $parsers['regex'] = t('Regular expression');
+      return $parsers;
+      break;
+    case 'validate':
+      if ($type == 'xpath') {
+        $doc = new DOMDocument();
+        $html = '<html><head><meta http-equiv="Content-Type" content="text/html; charset="UTF-8"></head><body></body></html>';  
+        @$doc->loadHTML($html);
+        $xpath = new DOMXPath($doc); 
+        $result = @$xpath->evaluate($expression);
+        return $result !== FALSE;
+      }
+      if ($type == 'regex') {
+        $matches = array();
+        $result = @preg_match_all($expression, '', $matches);
+        return $result !== FALSE;
+      }
+      break;
+    case 'parse':
+      $result = array();
+      if ($type == 'xpath') {
+        $result = _feedapi_scraper_xpath_parser($expression, $raw);
+      } 
+      if ($type == 'regex') {
+        $result = _feedapi_scraper_regex_parser($expression, $raw);
+      }
+      return $result;
+      break;
+  }
+}
+
+/**
+ * XPath Parser
+ *
+ * @param $expression
+ *    The scraper expression to apply to the raw content.
+ * @param $raw
+ *    The raw content to apply the expression on.
+ * @return 
+ *    Parsed content.
+ */
+function _feedapi_scraper_xpath_parser($expression, $raw) {
+
+    // From: parser_comments.module,v 1.5 2008/11/26 22:22:28 alexb
+    $html_start = '<html><head><meta http-equiv="Content-Type" content="text/html; charset="UTF-8"></head><body>';
+    $html_end = '</body></html>';  
+    $doc = new DOMDocument();
+    @$doc->loadHTML($html_start . $raw . $html_end);
+    
+    // @todo: For the moment only handle single result, write for multiple as well.
+    // Decide if the returned object represent a tag (if) or an attribute (else)
+    $value = '';
+    $simple_xml = simplexml_import_dom($doc);
+    $result = @$simple_xml->xpath($expression);
+    if ($result[0] && $result[0] instanceof SimpleXMLElement) {
+      if ($result[0]->attributes() instanceof SimpleXMLElement) {
+        $tag = $result[0]->getName();
+        $value = $result[0]->asXML();
+        // Remove the most external tag from the returned value
+        $value = preg_replace("-(<$tag [^>]*>)(.*)(</$tag>)-","$2", $value, 1);
+      }
+      else {
+        $value = (string) $result[0];
+      }
+    }
+    return $value;
+}
+
+/**
+ * Regular Expression Parser
+ *
+ * @param $expression
+ *    The scraper expression to apply to the raw content.
+ * @param $raw
+ *    The raw content to apply the expression on.
+ * @return 
+ *    Parsed content.
+ */
+function _feedapi_scraper_regex_parser($expression, $raw) {
+  $matches = array();
+  if(preg_match_all($expression, $raw, $matches) && isset($matches[1])) {
+    // Quick fix to clean up stripped HTML in feed fields
+    $replace = str_replace('amp;', '&amp;', $matches[1][0], $count);
+    if ($count > 0) {
+      $matches[1][0] = html_entity_decode($replace);
+    }
+    return $matches[1][0];
+  }
+  return '';
+}
+
+
+/**
+ * Save expression
+ *
+ * @param $expression
+ *    Array representing the expression
+ * @return
+ *    Last created EID, in case of success
+ *    FALSE otherwise
+ */
+function _feedapi_scraper_save_expression($expression = array()) {
+  if ($expression && db_query("INSERT INTO {feedapi_scraper} (nid, feed_item, expression) VALUES (%d, '%s', '%s')", $expression->nid, $expression->feed_item, $expression->expression)) {
+    return db_last_insert_id('feedapi_scraper', 'eid');
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Based on the original balanceTags for WordPress.
+ * 
+ * Credits:
+ * Balances Tags of string using a modified stack.
+ *
+ * @param $text
+ *    HTML text to be balanced
+ * @return
+ *    Returns balanced text
+ * @author
+ *    Leonard Lin (leonard@acm.org)
+ * @version
+ *    v1.1
+ * @date
+ *    November 4, 2001
+ * @license
+ *    GPL v2.0
+ *
+ */
+function _feedapi_scraper_balance_tags($text) {
+  
+  $is_comment = 0;
+  $tagstack = array( );
+  $stacksize = 0;
+  $tagqueue = '';
+  $newtext = ''; 
+
+  $text = str_replace('< !--', '<    !--', $text);
+  $text = preg_replace('#<([0-9]{1})#', '&lt;$1', $text);
+  
+  while (preg_match("/<(\/?\w*)\s*([^>]*)>/", $text, $regex)) {
+    $newtext .= $tagqueue;
+    
+    $i = strpos($text, $regex[0]);
+    $l = strlen($regex[0]);
+    
+    $tagqueue = '';
+    if ($regex[1][0] == "/") { // End Tag
+      $tag = strtolower(substr($regex[1], 1));
+      if ($stacksize <= 0) {
+        $tag = '';
+      }
+      else 
+      if ($tagstack[$stacksize - 1] == $tag) { 
+        $tag = '</'. $tag .'>';
+        array_pop($tagstack);
+        $stacksize --;
+      }
+      else { 
+        for ($j = $stacksize - 1; $j >= 0; $j --) {
+          if ($tagstack[$j] == $tag) {
+            for ($k = $stacksize - 1; $k >= $j; $k --) {
+              $tagqueue .= '</'. array_pop($tagstack) .'>';
+              $stacksize --;
+            }
+            break;
+          }
+        }
+        $tag = '';
+      }
+    }
+    else {
+      $tag = strtolower($regex[1]);
+      if ((substr($regex[2], - 1) == '/') || ($tag == '')) {
+      } 
+      elseif ($tag == 'br' || $tag == 'img' || $tag == 'hr' || $tag == 'input') {
+        $regex[2] .= '/';
+      }
+      else {
+        if (($stacksize > 0) && ($tag != 'div') && ($tagstack[$stacksize - 1] == $tag)) {
+          $tagqueue = '</'. array_pop($tagstack) .'>';
+          $stacksize --;
+        }
+        $stacksize = array_push($tagstack, $tag);
+      }
+      $attributes = $regex[2];
+      if ($attributes) {
+        $attributes = ' '. $attributes;
+      }
+      $tag = '<'. $tag . $attributes .'>';
+      if ($tagqueue) {
+        $tagqueue .= $tag;
+        $tag = '';
+      }
+    }
+    $newtext .= substr($text, 0, $i) . $tag;
+    $text = substr($text, $i + $l);
+  }
+  $newtext .= $tagqueue;
+  $newtext .= $text;
+  while ($x = array_pop($tagstack)) {
+    $newtext .= '</'. $x .'>';
+  }
+  $newtext = str_replace("< !--", "<!--", $newtext);
+  $newtext = str_replace("<    !--", "< !--", $newtext);
+  
+  return $newtext;
+} 

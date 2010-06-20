@@ -1,0 +1,114 @@
+<?php
+// $Id: feedapi_scraper.test,v 1.5 2009/07/18 07:48:37 antoniodemarco Exp $
+
+class FeedApiScraperFunctionalTestCase extends DrupalWebTestCase {
+  
+  private $xml_sources = array();
+  
+  function __construct() {
+
+    $this->xml_sources['national_geographic'] = file_get_contents(drupal_get_path('module', 'feedapi_scraper') .'/tests/national_geographic.xml');
+    $this->xml_sources['panoramio'] = file_get_contents(drupal_get_path('module', 'feedapi_scraper') .'/tests/panoramio.xml');
+    $this->xml_sources['youtube'] = file_get_contents(drupal_get_path('module', 'feedapi_scraper') .'/tests/youtube.xml');
+    $this->xml_sources['vimeo'] = file_get_contents(drupal_get_path('module', 'feedapi_scraper') .'/tests/vimeo.xml');
+    
+    parent::__construct();
+  }
+
+  function setUp() {}
+  function tearDown() {}
+  
+  /**
+   * Implementation of getInfo()
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('FeedAPI Scraper functional test'),
+      'description' => t('Functional tests of the module.'),
+      'group' => t('FeedAPI Scraper'));  
+  }
+  
+  
+  /********************************************
+   * Test Cases
+   ********************************************/
+
+  function testRemoveExternalTag() {
+    $remove = "div";
+    $st = "<div class='test'>something<img src='s.jpg'/> something <p> here the paragraph!!! </p>else </div>";
+    $st = preg_replace("-(<$remove [^>]*>)(.*)(</$remove>)-","$2", $st, 1);
+    $this->assertEqual("something<img src='s.jpg'/> something <p> here the paragraph!!! </p>else ", $st, 'Remove external tag');
+    echo $st;      
+  }
+  
+  
+  function testFeedApiScraperXPathParser1() {
+    
+    $raw = '<div>
+            <div class="field field-type-filefield field-field-image">
+              <div class="field-items">
+              <div class="field-item odd">
+            <img src="http://beta.youthagora.org/master/tallinn/sites/default/files/imagecache/250x_/thumb374_11.jpfed8f2dc06c05fffbe99e26c853c1dc6.jpg" alt="" title=""  class="imagecache imagecache-250x_ imagecache-default imagecache-250x__default" width="250" height="219" />        </div>
+            </div>
+            </div>
+            Guidelines for writing theoretical chapter of the MA thesis 1 &lt; 10 </br>
+            <p>1. The purpose of this part of the thesis writing is to build a theoretical foundation for your research &amp;ndash; in the best possible case a complete theoretical framework/chapter that will point out the relevant concepts and their interrelationships and in that way guide the study. The paper must include evidence of a targeted search for relevant research and good awareness of its relative merits. </p></description>
+           </div>';
+    
+    $expression = '//*/div/img/@src';
+    
+    $value = _feedapi_scraper_xpath_parser($expression, $raw);
+    $this->assertEqual('http://beta.youthagora.org/master/tallinn/sites/default/files/imagecache/250x_/thumb374_11.jpfed8f2dc06c05fffbe99e26c853c1dc6.jpg', $value, 'IMG attribute test');
+  }
+  
+
+  function testFeedApiScraperXPathParser2() {
+    
+    $content = "&lt;table&gt; &lt;tr&gt;    &lt;td valign=&quot;top&quot;&gt;     &lt;a href=&quot;http://news.nationalgeographic.com/news/2009/05/photogalleries/mothers-day-worst-animal-moms-pictures/index.html&quot;&gt;       &lt;img src=&quot;http://news.nationalgeographic.com/news/images/thumbs/090507-mothers-day-worst-animal-moms-pictures_60x40.jpg&quot; height=&quot;40&quot; width=&quot;60&quot; alt=&quot;image&quot; /&gt;      &lt;/a&gt;    &lt;/td&gt;   &lt;td valign=&quot;top&quot;&gt;     &lt;p&gt;Meet the animal world's \"worst\" mothersÑand find out why their tough parenting may not be so awful after all.&lt;/p&gt;    &lt;/td&gt; &lt;/tr&gt;&lt;/table&gt;&lt;br clear=&quot;both&quot; style=&quot;clear: both;&quot;/&gt;
+                &lt;br clear=&quot;both&quot; style=&quot;clear: both;&quot;/&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:85b16abec4d3f6162cf02445769badb2:wIBSR27bAfQUnxoVWAUAVN5f3zOZ9X7qO1dw%2FbJAoaqOpNFplbOnOKS7jR4VOgg0TB3z%2Fph%2FxdG9'&gt;&lt;img border='0' title='Email this Article' alt='Email this Article' src='http://www.pheedo.com/images/mm/emailthis.png'/&gt;&lt;/a&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:31eb0fe438bfef213f8ac22166ac5d5c:5Vuz60Pu2qVxUNPloziLt39y0FE8Qgs9UwRceBkCGMpzPDlUKtYFNZS4LMJuMQgf8WO8iBmp%2B3oh'&gt;&lt;img border='0' title='Add to del.icio.us' alt='Add to del.icio.us' src='http://www.pheedo.com/images/mm/delicious.gif'/&gt;&lt;/a&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:7da5f8c69bd47d835519050c3528540e:Jw%2FfScZRBNJ8%2BRmjBCSFuHpC8gGaOdQWoJi%2Bd64bqYSFBXYs75pDZ93mkDsyKJd3dp1c3Px79m1H'&gt;&lt;img border='0' title='Add to digg' alt='Add to digg' src='http://www.pheedo.com/images/mm/digg.gif'/&gt;&lt;/a&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:f992222cf57721eaed6e879b999f05c8:XfaTUOUpypoRhtqxELJ%2FGbOfCdPQeUcY3sH1%2FzVfMBesPvo51SguvaT85v2fwBw85wXzuLgzztCqKw%3D%3D'&gt;&lt;img border='0' title='Add to Facebook' alt='Add to Facebook' src='http://www.pheedo.com/images/mm/facebook.gif'/&gt;&lt;/a&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:1ea3a915092b56a7fecf1f33088278f7:C%2B%2BJKQX27DsUW%2FcKxGCAjgJCoPCYZR9r2iGWpFL3UJJBNNXbuYkXhwl7tifXj%2Fb8rm%2FGutsOa9mJWQ%3D%3D'&gt;&lt;img border='0' title='Add to StumbleUpon' alt='Add to StumbleUpon' src='http://www.pheedo.com/images/mm/stumbleit.gif'/&gt;&lt;/a&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:5165c73750ebf3f4f6dc0d92269092aa:821MC9UX68B3YbsOwxQp2suvbcCLcsyef2Bf910%2BJZ6PmmCm3FR0R912vOtNWkCSsCHouteKjosC'&gt;&lt;img border='0' title='Add to Google' alt='Add to Google' src='http://www.pheedo.com/images/mm/google.png'/&gt;&lt;/a&gt;
+                  &lt;a style='font-size: 10px; color: maroon;' href='http://www.pheedo.com/hostedMorselClick.php?hfmm=v3:b132131b06b7fb61279460b907b03300:gsiO9QX2lbt8v6KCmJidzYs2Txrp882iv4LQ0tv0ovnRUBGdeeBUW9rapRN2fEe5DsgXQGhgt1Ak'&gt;&lt;img border='0' title='Add to Reddit' alt='Add to Reddit' src='http://www.pheedo.com/images/mm/reddit.png'/&gt;&lt;/a&gt;
+                &lt;br clear=&quot;both&quot; style=&quot;clear: both;&quot;/&gt;
+                &lt;a href=&quot;http://ads.pheedo.com/click.phdo?s=9b1af203bdd8bd2d959fdf366606baf2&amp;p=1&quot;&gt;&lt;img alt=&quot;&quot; style=&quot;border: 0;&quot; border=&quot;0&quot; src=&quot;http://ads.pheedo.com/img.phdo?s=9b1af203bdd8bd2d959fdf366606baf2&amp;p=1&quot;/&gt;&lt;/a&gt;";
+        
+    $expression = '//*/table';
+    
+    $content = html_entity_decode($content);
+    $content = _feedapi_scraper_balance_tags($content);
+   
+    $value = _feedapi_scraper_xpath_parser($expression, $content);
+//    $this->assertEqual('http://beta.youthagora.org/master/tallinn/sites/default/files/imagecache/250x_/thumb374_11.jpfed8f2dc06c05fffbe99e26c853c1dc6.jpg', $value, 'IMG attribute test');
+  }
+  
+  
+  function testFeedApiScraperRegExParser1() {
+    
+    $raw = '<div>
+            <div class="field field-type-filefield field-field-image">
+              <div class="field-items">
+              <div class="field-item odd">
+            <img src="http://beta.youthagora.org/master/tallinn/sites/default/files/imagecache/250x_/thumb374_11.jpfed8f2dc06c05fffbe99e26c853c1dc6.jpg" alt="" title=""  class="imagecache imagecache-250x_ imagecache-default imagecache-250x__default" width="250" height="219" />        </div>
+            </div>
+            </div>
+            Guidelines for writing theoretical chapter of the MA thesis 1 &lt; 10 </br>
+            <p>1. The purpose of this part of the thesis writing is to build a theoretical foundation for your research &amp;ndash; in the best possible case a complete theoretical framework/chapter that will point out the relevant concepts and their interrelationships and in that way guide the study. The paper must include evidence of a targeted search for relevant research and good awareness of its relative merits. </p></description>
+           </div>';
+    
+    $expression = '/<\s*img [^\>]*src\s*=\s*[\""\']?([^\""\'\s>]*)/i';
+
+    $matches = array();
+    $return = @preg_match_all($expression, $raw, $matches);
+    
+    $this->assertEqual('http://beta.youthagora.org/master/tallinn/sites/default/files/imagecache/250x_/thumb374_11.jpfed8f2dc06c05fffbe99e26c853c1dc6.jpg', $matches[1][0], 'IMG attribute test');
+  }
+  
+}
+
+
+
+

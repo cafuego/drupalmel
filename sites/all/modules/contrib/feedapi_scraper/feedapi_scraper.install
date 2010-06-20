@@ -1,0 +1,69 @@
+<?php
+// $Id: feedapi_scraper.install,v 1.4 2009/05/13 15:38:05 antoniodemarco Exp $
+
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function feedapi_scraper_schema() {
+  $schema['feedapi_scraper'] = array(
+    'description' => t('Store date for the feedapi scraper'),
+    'fields' => array(
+      'eid' => array(
+        'description' => t('Primary identifier for the expression.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'nid' => array(
+        'description' => t('Identifier for the feed the expression belongs to.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'name' => array(
+        'description' => t('Name of the expression'),
+        'type' => 'text',
+        'size' => 'small',
+        'not null' => TRUE),
+      'type' => array(
+        'description' => t('Type of the expression'),
+        'type' => 'text',
+        'size' => 'small',
+        'not null' => TRUE),
+      'feed_item' => array(
+        'description' => t('Feed item the expression will be applied to.'),
+        'type' => 'text',
+        'size' => 'small',
+        'not null' => TRUE),
+      'expression' => array(
+        'description' => t('Expression.'),
+        'type' => 'text',
+        'size' => 'small',
+        'not null' => TRUE),
+      'status' => array(
+        'description' => t('Boolean indicating whether the expression is active or not.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1),
+    ),
+    'primary key' => array('eid'),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function feedapi_scraper_install() {
+  drupal_install_schema('feedapi_scraper');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function feedapi_scraper_uninstall() {
+  drupal_uninstall_schema('feedapi_scraper');
+}

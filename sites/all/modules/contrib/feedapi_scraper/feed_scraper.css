@@ -1,0 +1,26 @@
+/* $Id: feed_scraper.css,v 1.8 2009/05/17 17:08:53 antoniodemarco Exp $ */
+
+form#feedapi_scraper_new label, form#feedapi_scraper_new .form-select, form#feedapi_scraper_new .form-submit {float: left; margin: .5em .5em .5em 0;}
+
+table.scrapers .type { color: #999; font-family: arial, helvetica, sans-serif; text-transform: uppercase; font-size: .9em; font-weight: bold;}
+table.scrapers .expression, .scrapers .feed_item { font-family: Courier, 'Courier New', monospace; overflow: hidden; white-space: nowrap;}
+table.scrapers .name { font-weight: bold; font-family: arial, helvetica, sans-serif; text-transform: uppercase; font-size: .9em; font-weight: bold; white-space: nowrap;}
+table.scrapers .actions a { font-family: arial, helvetica, sans-serif; text-transform: uppercase; font-size: .9em; font-weight: bold; white-space: nowrap;}
+table.scrapers {clear: both;}
+
+.scraper-action { width: 12px; height: 12px; background-position: 0px 0px; display: block; float: left; margin-top: 3px; margin-right: 3px; padding: 0px; }
+.scraper-action.edit {background: transparent url('images/edit.png') no-repeat top left; }
+.scraper-action.delete {background: transparent url('images/delete.png') no-repeat top left; }
+.scraper-action span { display: none; }
+.scraper-action:hover { background-position: 0px -12px; }
+
+textarea#feedapi_scraper-input, textarea#feedapi_scraper-output { font-size: 1.2em; font-family: Courier, 'Courier New', monospace; white-space: nowrap; height: 250px; padding-left: 45px; width: 300px;}
+textarea#feedapi_scraper-input {background: white url('images/input.png') top left no-repeat; }
+textarea#feedapi_scraper-output {background: white url('images/output.png') top left no-repeat; }
+form#feedapi-scraper-edit input#edit-expression { width: 300px; font-family: Courier, 'Courier New', monospace; font-size: 1.5em; padding: 3px;}
+
+form#feedapi-scraper-edit table tbody, form#feedapi-scraper-edit table tr { border: 0; background: none;}
+form#feedapi-scraper-edit .form-item { padding-bottom: 10px;}
+form#feedapi-scraper-edit table tr td.arrow {background: url('images/arrow.png') no-repeat 50% 50%; padding: 0 15px; width: 100px;}
+label .feed-item { font-weight: normal; font-family: Courier, 'Courier New', monospace; padding: 0 3px 0 7px;}
+.fixed-size { font-family: Courier, 'Courier New', monospace;  }
