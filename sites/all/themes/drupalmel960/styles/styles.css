@@ -1,0 +1,148 @@
+/* $Id: styles.css,v 1.1 2009/01/31 21:28:46 dvessel Exp $ */
+
+h1#site-name {
+  margin-bottom: 0;
+}
+
+#site-header,
+#site-subheader,
+#footer-region,
+.column,
+.node,
+.comment,
+.block {
+  margin-bottom: 1.5em;
+}
+
+#page-outer{ 
+	background: url(../images/main_bkg.jpg) repeat 50% 0; 
+	padding-bottom:100px;
+	}
+
+#page {
+	background-color: #fff;
+}
+
+/*start header styles*/
+
+#header-dec-outer { 
+	background: url(../images/header_bkg.jpg) repeat-x 0 0; 
+	height: 310px; 
+	position: relative;
+	}
+	
+.header-decoration { 
+	background: url(../images/city_header.png) no-repeat 50% top; 
+	float: left; 
+	position: absolute; 
+	top:73px; 
+	left: 0; 
+	width:100%;
+	height: 265px;
+	}
+
+#header-dec-outer .block-search {
+	position: relative;
+	top: -55px;
+	color: #fff;
+}
+
+#logo {
+	position: relative;
+	top: -90px;
+	left: 380px;
+}
+
+/*dmelmenu styles*/
+
+#dmelmenu-outer{ 
+	background: url(../images/topmenu_bkg.jpg) repeat-x 0 0; height: 112px;
+	}
+
+#dmelmenu-inner{
+	margin: 0 auto;
+	background: url(../images/menu_bkg.jpg) no-repeat 0 0;
+	height: 112px;
+}
+
+#block-menu-primary-links ul.menu {
+	position: relative;
+	top: 50px;
+	text-align: center;
+	text-transform: uppercase;
+	font-size: 1.3em;
+	
+}
+
+#block-menu-primary-links ul.menu li {
+	list-style: none; 
+	display: inline;
+	padding: 0 14px;
+}
+
+#block-menu-primary-links ul.menu li a {
+	color: #fff; 
+	text-decoration: none;
+}
+
+#block-menu-primary-links ul.menu li a:visited {
+	color: #fff;
+}
+
+#block-menu-primary-links ul.menu li a:hover,
+#block-menu-primary-links ul.menu li a:active {
+	color: #b6ff4e;
+	text-decoration: underline;
+}
+
+/*start of footer styles*/
+#footer-outer {
+	background-color:#062226;
+	font-size:11px;
+	padding:25px 10px 20px;
+	position:relative;
+	display: block;
+	}
+
+#footer-inner {
+	background: url(../images/footer_deco.png) no-repeat 50% top; 
+	float: left; 
+	position: relative; 
+	top:-147px; 
+	left: 0; 
+	width:100%; 
+	height: 175px;
+}
+
+#dmelfooter {
+	background-image: none;
+}
+
+#footer-region {
+	position: relative;
+	top: 185px;	
+}
+/*
+** Formatting for administration page
+**
+** The admin panel styles are a mess. IE has problems with this so this is
+** only a temporary fix. This should be fixed in core.
+*/
+div.admin-panel {
+  padding: 0;
+}
+
+div.admin-panel .body {
+  padding: 0 !important;
+}
+
+div.admin .left,
+div.admin .right {
+  width: 50%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+div.admin .right .admin-panel {
+  margin-left: 10px;
+}

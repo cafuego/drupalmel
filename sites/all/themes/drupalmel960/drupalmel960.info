@@ -1,0 +1,33 @@
+; $Id: drupalmel960.info,v 1.1.2.3 2009/06/05 17:52:14 dvessel Exp $
+
+name = drupalmel 960 Grid System
+description = Drupalmel customisation of the base theme using the 960 Grid System. See the "README.txt" file within the theme folder for more information.
+screenshot = images/screenshot.png
+core = 6.x
+engine = phptemplate
+base theme = ninesixty
+
+regions[left] = Left sidebar
+regions[right] = Right sidebar
+regions[preheader] = Preheader
+regions[drupmelmenu] = DrupMelMenu
+regions[header] = Header
+regions[content] = Content
+regions[footer] = Footer
+
+
+; Stylesheets. Anything within the "framework" folder will be placed before all others.
+stylesheets[all][] = styles/framework/reset.css
+stylesheets[all][] = styles/framework/text.css
+stylesheets[all][] = styles/framework/960.css
+stylesheets[all][] = styles/framework/debug.css
+
+; Theme specific styles. Any sub-themes should override this.
+stylesheets[all][] = styles/styles.css
+
+; Information added by drupal.org packaging script on 2009-08-02
+version = "6.x-1.0"
+core = "6.x"
+project = "ninesixty"
+datestamp = "1249223138"
+
